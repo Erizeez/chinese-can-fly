@@ -1,0 +1,169 @@
+[
+  {
+    "ident": "ZBAA",
+    "icao": "ZBAA",
+    "iata": "PEK",
+    "name": "北京首都国际机场 (Beijing Capital International Airport)",
+    "municipality": "北京",
+    "latitude": 40.080111,
+    "longitude": 116.584556,
+    "elevation_ft": 116.0,
+    "type": "large_airport",
+    "runways": [
+      {
+        "id": "ZBAA-01-19",
+        "length_ft": 12467.0,
+        "width_ft": 197.0,
+        "surface": "ASP",
+        "lighted": true,
+        "le_ident": "01",
+        "le_latitude": 40.0635,
+        "le_longitude": 116.5878,
+        "le_elevation_ft": 116.0,
+        "le_heading_degT": 7.0,
+        "he_ident": "19",
+        "he_latitude": 40.0976,
+        "he_longitude": 116.5941,
+        "he_elevation_ft": 115.0,
+        "he_heading_degT": 187.0
+      },
+      {
+        "id": "ZBAA-18L-36R",
+        "length_ft": 12467.0,
+        "width_ft": 197.0,
+        "surface": "CON",
+        "lighted": true,
+        "le_ident": "18L",
+        "le_latitude": 40.0945,
+        "le_longitude": 116.6111,
+        "le_elevation_ft": 115.0,
+        "le_heading_degT": 178.0,
+        "he_ident": "36R",
+        "he_latitude": 40.0605,
+        "he_longitude": 116.6083,
+        "he_elevation_ft": 116.0,
+        "he_heading_degT": 358.0
+      }
+    ]
+  },
+  {
+    "ident": "ZSSS",
+    "icao": "ZSSS",
+    "iata": "SHA",
+    "name": "上海虹桥国际机场 (Shanghai Hongqiao International Airport)",
+    "municipality": "上海",
+    "latitude": 31.197875,
+    "longitude": 121.336319,
+    "elevation_ft": 10.0,
+    "type": "large_airport",
+    "runways": [
+      {
+        "id": "ZSSS-18L-36R",
+        "length_ft": 10827.0,
+        "width_ft": 148.0,
+        "surface": "ASP",
+        "lighted": true,
+        "le_ident": "18L",
+        "le_latitude": 31.2120,
+        "le_longitude": 121.3340,
+        "le_elevation_ft": 10.0,
+        "le_heading_degT": 180.0,
+        "he_ident": "36R",
+        "he_latitude": 31.1823,
+        "he_longitude": 121.3340,
+        "he_elevation_ft": 10.0,
+        "he_heading_degT": 360.0
+      }
+    ]
+  },
+  {
+    "ident": "ZGGG",
+    "icao": "ZGGG",
+    "iata": "CAN",
+    "name": "广州白云国际机场 (Guangzhou Baiyun International Airport)",
+    "municipality": "广州",
+    "latitude": 23.392400,
+    "longitude": 113.298800,
+    "elevation_ft": 50.0,
+    "type": "large_airport",
+    "runways": [
+      {
+        "id": "ZGGG-02L-20R",
+        "length_ft": 12467.0,
+        "width_ft": 197.0,
+        "surface": "CON",
+        "lighted": true,
+        "le_ident": "02L",
+        "le_latitude": 23.3750,
+        "le_longitude": 113.2870,
+        "le_elevation_ft": 50.0,
+        "le_heading_degT": 20.0,
+        "he_ident": "20R",
+        "he_latitude": 23.4080,
+        "he_longitude": 113.3010,
+        "he_elevation_ft": 48.0,
+        "he_heading_degT": 200.0
+      }
+    ]
+  },
+  {
+    "ident": "ZGSZ",
+    "icao": "ZGSZ",
+    "iata": "SZX",
+    "name": "深圳宝安国际机场 (Shenzhen Bao'an International Airport)",
+    "municipality": "深圳",
+    "latitude": 22.639258,
+    "longitude": 113.810664,
+    "elevation_ft": 13.0,
+    "type": "large_airport",
+    "runways": [
+      {
+        "id": "ZGSZ-15-33",
+        "length_ft": 12467.0,
+        "width_ft": 148.0,
+        "surface": "CON",
+        "lighted": true,
+        "le_ident": "15",
+        "le_latitude": 22.6560,
+        "le_longitude": 113.8010,
+        "le_elevation_ft": 13.0,
+        "le_heading_degT": 155.0,
+        "he_ident": "33",
+        "he_latitude": 22.6230,
+        "he_longitude": 113.8180,
+        "he_elevation_ft": 12.0,
+        "he_heading_degT": 335.0
+      }
+    ]
+  },
+  {
+    "ident": "ZUTF",
+    "icao": "ZUTF",
+    "iata": "TFU",
+    "name": "成都天府国际机场 (Chengdu Tianfu International Airport)",
+    "municipality": "成都",
+    "latitude": 30.315000,
+    "longitude": 104.444000,
+    "elevation_ft": 1430.0,
+    "type": "large_airport",
+    "runways": [
+      {
+        "id": "ZUTF-01L-19R",
+        "length_ft": 13123.0,
+        "width_ft": 148.0,
+        "surface": "CON",
+        "lighted": true,
+        "le_ident": "01L",
+        "le_latitude": 30.2980,
+        "le_longitude": 104.4320,
+        "le_elevation_ft": 1430.0,
+        "le_heading_degT": 12.0,
+        "he_ident": "19R",
+        "he_latitude": 30.3320,
+        "he_longitude": 104.4410,
+        "he_elevation_ft": 1425.0,
+        "he_heading_degT": 192.0
+      }
+    ]
+  }
+]
