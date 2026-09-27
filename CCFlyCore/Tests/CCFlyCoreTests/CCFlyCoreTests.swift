@@ -42,4 +42,38 @@ final class CCFlyCoreTests: XCTestCase {
         let hardReport = analyzer.evaluateTouchdown(peakNormalG: 1.95, touchdownSinkRateFpm: -500)
         XCTAssertTrue(hardReport.rating.contains("重着陆"))
     }
+
+    func testOfflineFlightDatabaseAndMU6594() {
+        let db = OfflineFlightDatabase.shared
+        
+        // 1. 验证 MU6594 航班收录检索
+        let flight = db.lookupFlight(callsign: "MU6594")
+        XCTAssertNotNil(flight, "应当能够检索到 MU6594 航班")
+        XCTAssertEqual(flight?.airline, "中国东方航空")
+        XCTAssertEqual(flight?.departureIATA, "SQJ")
+        XCTAssertEqual(flight?.arrivalIATA, "SHA")
+        XCTAssertEqual(flight?.aircraftModel, "Boeing 737-800")
+        XCTAssertGreaterThan(flight?.distanceNM ?? 0, 200)
+
+        // 2. 验证智能航司推断
+        XCTAssertEqual(OfflineFlightDatabase.detectAirline(callsign: "MU6594"), "中国东方航空")
+        XCTAssertEqual(OfflineFlightDatabase.detectAirline(callsign: "CA1501"), "中国国际航空")
+        XCTAssertEqual(OfflineFlightDatabase.detectAirline(callsign: "CZ3101"), "中国南方航空")
+
+        // 3. 验证用户自定义航班持久化
+        db.saveCustomFlight(
+            callsign: "TEST999",
+            airline: "测试虚拟航空",
+            dep: "PEK",
+            arr: "SHA",
+            model: "C919",
+            alt: 35000
+        )
+        let customFlight = db.lookupFlight(callsign: "TEST999")
+        XCTAssertNotNil(customFlight)
+        XCTAssertEqual(customFlight?.airline, "测试虚拟航空")
+        XCTAssertEqual(customFlight?.departureIATA, "PEK")
+        XCTAssertEqual(customFlight?.arrivalIATA, "SHA")
+    }
 }
+

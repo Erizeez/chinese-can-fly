@@ -10,6 +10,8 @@ public final class FlightPlanStore: @unchecked Sendable {
     public var activeFlightState: AirborneState?
     public var isSearchingOnline: Bool = false
     public var onlineErrorMessage: String? = nil
+    public var searchErrorMessage: String? = nil
+    public var notFoundCallsign: String? = nil
 
     // 预计算的大圆航线折线坐标，供航图秒级直接渲染，杜绝三角函数开销
     public private(set) var precomputedRouteCoords: [CLLocationCoordinate2D] = []
@@ -23,8 +25,8 @@ public final class FlightPlanStore: @unchecked Sendable {
     private let cacheLock = NSLock()
 
     private init() {
-        // 默认预选国航主力干线
-        let initial = OfflineFlightDatabase.shared.lookupFlight(callsign: "CA1501")
+        // 默认预选 MU6594 (三明沙县至上海虹桥)
+        let initial = OfflineFlightDatabase.shared.lookupFlight(callsign: "MU6594") ?? OfflineFlightDatabase.shared.lookupFlight(callsign: "CA1501")
         self.currentFlight = initial
         if let f = initial {
             cacheCityName(iata: f.departureIATA)
@@ -40,14 +42,23 @@ public final class FlightPlanStore: @unchecked Sendable {
             self.currentFlight = found
             self.activeFlightState = nil
             self.onlineErrorMessage = nil
+            self.searchErrorMessage = nil
+            self.notFoundCallsign = nil
             cacheCityName(iata: found.departureIATA)
             cacheCityName(iata: found.arrivalIATA)
             computeRouteCoords(flight: found)
             return true
         } else {
-            self.onlineErrorMessage = "离线库暂未收录 \(clean)，可通过搜索添加或在线刷新。"
+            self.searchErrorMessage = "离线推荐库暂未收录 \(clean)"
+            self.notFoundCallsign = clean
             return false
         }
+    }
+
+    /// 用户自定义录入航班并直接设为当前航班
+    public func addCustomFlightAndSelect(callsign: String, airline: String, dep: String, arr: String, model: String, alt: Double) {
+        OfflineFlightDatabase.shared.saveCustomFlight(callsign: callsign, airline: airline, dep: dep, arr: arr, model: model, alt: alt)
+        _ = selectFlight(callsign: callsign)
     }
 
     /// 极速获取机场所在城市 (带内存缓存，0纳秒访问)
