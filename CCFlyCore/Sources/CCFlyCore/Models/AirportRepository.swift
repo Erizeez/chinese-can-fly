@@ -10,8 +10,8 @@ public final class AirportRepository: @unchecked Sendable {
     private var isLoaded: Bool = false
     private let lock = NSLock()
 
-    // 常用核心干线机场快速缓存 (零延迟开机秒级可用)
-    private let fastCacheAirports: [Airport] = [
+    // 常用核心干线机场快速缓存 (零延迟开机秒级可用，零锁竞争)
+    public static let coreHubAirports: [Airport] = [
         Airport(ident: "ZBAA", icao: "ZBAA", iata: "PEK", name: "北京首都国际机场", municipality: "北京", latitude: 40.0801, longitude: 116.5846, elevationFt: 116.0),
         Airport(ident: "ZBAD", icao: "ZBAD", iata: "PKX", name: "北京大兴国际机场", municipality: "北京", latitude: 39.5098, longitude: 116.4105, elevationFt: 98.0),
         Airport(ident: "ZSSS", icao: "ZSSS", iata: "SHA", name: "上海虹桥国际机场", municipality: "上海", latitude: 31.1979, longitude: 121.3363, elevationFt: 10.0),
@@ -24,8 +24,8 @@ public final class AirportRepository: @unchecked Sendable {
 
     private init() {
         // 先载入极速轻量核心缓存，保证启动耗时 0 毫秒
-        self.airports = fastCacheAirports
-        indexAirports(fastCacheAirports)
+        self.airports = Self.coreHubAirports
+        indexAirports(Self.coreHubAirports)
         
         // 注册资源包变更通知，以便设置中下载/删除时自动同步重载
         NotificationCenter.default.addObserver(

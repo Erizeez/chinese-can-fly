@@ -91,6 +91,13 @@ public final class FlightDataManager: @unchecked Sendable {
                 }
                 self.flightPhase = phase
 
+                // 同步至航图专属低频位置 (1Hz)
+                FlightPlanStore.shared.updateChartPosition(
+                    latitude: location.coordinate.latitude,
+                    longitude: location.coordinate.longitude,
+                    trackDeg: self.groundTrackDeg
+                )
+
                 // 仅在明确开启飞行记录时写入黑匣子持久队列
                 if self.isRecording {
                     self.appendCurrentTelemetryFrame()

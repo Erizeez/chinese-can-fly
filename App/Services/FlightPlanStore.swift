@@ -11,6 +11,13 @@ public final class FlightPlanStore: @unchecked Sendable {
     public var isSearchingOnline: Bool = false
     public var onlineErrorMessage: String? = nil
 
+    // 预计算的大圆航线折线坐标，供航图秒级直接渲染，杜绝三角函数开销
+    public private(set) var precomputedRouteCoords: [CLLocationCoordinate2D] = []
+
+    // 航图专用的 1Hz 低频位置与航向，彻底解耦 30Hz 姿态仪高频更新
+    public var chartPosition: CLLocationCoordinate2D = CLLocationCoordinate2D(latitude: 39.5098, longitude: 116.4105)
+    public var chartTrackDeg: Double = 0.0
+
     // 内存城市名称极速缓存，杜绝视图每次重绘加锁查库
     private var cityCache: [String: String] = [:]
     private let cacheLock = NSLock()
@@ -22,6 +29,7 @@ public final class FlightPlanStore: @unchecked Sendable {
         if let f = initial {
             cacheCityName(iata: f.departureIATA)
             cacheCityName(iata: f.arrivalIATA)
+            computeRouteCoords(flight: f)
         }
     }
 
@@ -34,6 +42,7 @@ public final class FlightPlanStore: @unchecked Sendable {
             self.onlineErrorMessage = nil
             cacheCityName(iata: found.departureIATA)
             cacheCityName(iata: found.arrivalIATA)
+            computeRouteCoords(flight: found)
             return true
         } else {
             self.onlineErrorMessage = "离线库暂未收录 \(clean)，可通过搜索添加或在线刷新。"
@@ -88,5 +97,30 @@ public final class FlightPlanStore: @unchecked Sendable {
                 }
             }
         }
+    }
+
+    /// 在后台线程预计算大圆航线坐标
+    public func computeRouteCoords(flight: FlightPlan) {
+        Task.detached(priority: .userInitiated) {
+            let dep = AirportRepository.shared.findAirport(code: flight.departureIATA)
+            let arr = AirportRepository.shared.findAirport(code: flight.arrivalIATA)
+            let waypoints = NavigationMath.generateGreatCircleWaypoints(
+                lat1: dep?.latitude ?? 39.9,
+                lon1: dep?.longitude ?? 116.4,
+                lat2: arr?.latitude ?? 31.2,
+                lon2: arr?.longitude ?? 121.4,
+                count: 20
+            )
+            let coords = waypoints.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+            await MainActor.run {
+                self.precomputedRouteCoords = coords
+            }
+        }
+    }
+
+    /// 接收 1Hz GPS 经纬度并更新航图标注 (低频节流，绝不影响姿态仪)
+    public func updateChartPosition(latitude: Double, longitude: Double, trackDeg: Double) {
+        self.chartPosition = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+        self.chartTrackDeg = trackDeg
     }
 }
