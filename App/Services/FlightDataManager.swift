@@ -53,6 +53,7 @@ public final class FlightDataManager: @unchecked Sendable {
     // 缓存上一次采样的重力与加速度矢量 (用于机体轴校准)
     private var lastRawGravity: simd_double3 = simd_double3(0, -9.80665, 0)
     private var lastRawAcceleration: simd_double3 = .zero
+    private var lastRecordedTick: Date = Date.distantPast
 
     private init() {
         // 默认载入干线代表航班
@@ -93,22 +94,30 @@ public final class FlightDataManager: @unchecked Sendable {
                 self.lastRawAcceleration = acc
                 self.lastRawGravity = grav
 
+                let targetPitch: Double
+                let targetRoll: Double
+
                 // 如果已对准，则使用机体变换后的俯仰滚转与过载；未对准时直接使用自然姿态
                 if self.bodyAligner.calibrated {
                     let (p, r) = self.bodyAligner.calculateAttitudeAngles(sensorGravity: grav)
-                    self.pitchDeg = p
-                    self.rollDeg = r
+                    targetPitch = p
+                    targetRoll = r
                     let (nx, ny, nz) = self.bodyAligner.transformAcceleration(sensorAcc: acc + grav)
                     self.normalGForce = nz
                     self.longitudinalGForce = nx
                     self.lateralGForce = ny
                 } else {
-                    self.pitchDeg = pitch
-                    self.rollDeg = roll
+                    targetPitch = pitch
+                    targetRoll = roll
                     self.normalGForce = sqrt(grav.x * grav.x + grav.y * grav.y + grav.z * grav.z) / 9.80665
                     self.longitudinalGForce = acc.z / 9.80665
                     self.lateralGForce = acc.x / 9.80665
                 }
+
+                // 姿态一阶平滑低通滤波，消除传感器微颤与视觉卡顿，模拟真实航空仪表的沉稳顺滑
+                let alpha = 0.35
+                self.pitchDeg = (alpha * targetPitch) + ((1.0 - alpha) * self.pitchDeg)
+                self.rollDeg = (alpha * targetRoll) + ((1.0 - alpha) * self.rollDeg)
 
                 self.dynamicsAnalyzer.processSample(normalG: self.normalGForce, sinkRateFpm: -self.cabinVSIFpm)
                 self.turbulenceEDR = self.dynamicsAnalyzer.calculateTurbulenceEDR()
@@ -121,7 +130,10 @@ public final class FlightDataManager: @unchecked Sendable {
                     )
                 }
 
-                if self.isRecording && self.telemetryHistory.count % 5 == 0 {
+                // 黑匣子时序图表严格按 1Hz 节流写入，杜绝高频刷新导致 Swift Charts 卡死主线程
+                let now = Date()
+                if self.isRecording && now.timeIntervalSince(self.lastRecordedTick) >= 1.0 {
+                    self.lastRecordedTick = now
                     self.appendCurrentTelemetryFrame()
                 }
             }

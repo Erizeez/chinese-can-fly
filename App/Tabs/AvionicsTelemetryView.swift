@@ -62,68 +62,14 @@ public struct AvionicsTelemetryView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 14))
                     .padding(.horizontal)
 
-                    // 2. 航空主飞行仪表 (PFD Artificial Horizon)
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color(red: 0.05, green: 0.07, blue: 0.11))
-                            .frame(height: 190)
-
-                        GeometryReader { geo in
-                            ZStack {
-                                // 天空与地面分界
-                                VStack(spacing: 0) {
-                                    Rectangle().fill(Color(red: 0.10, green: 0.35, blue: 0.65))
-                                    Rectangle().fill(Color(red: 0.40, green: 0.26, blue: 0.15))
-                                }
-                                .frame(width: geo.size.width * 2.2, height: geo.size.height * 2.2)
-                                .offset(y: CGFloat(dataManager.pitchDeg * 3.2))
-                                .rotationEffect(.degrees(-dataManager.rollDeg))
-
-                                // 俯仰刻度梯尺 (Pitch Ladder)
-                                VStack(spacing: 16) {
-                                    ForEach([-20, -10, 0, 10, 20], id: \.self) { deg in
-                                        HStack {
-                                            Rectangle().frame(width: 20, height: 2)
-                                            Text("\(abs(deg))")
-                                                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                            Rectangle().frame(width: 20, height: 2)
-                                        }
-                                        .foregroundStyle(.white.opacity(0.8))
-                                    }
-                                }
-                                .offset(y: CGFloat(dataManager.pitchDeg * 3.2))
-                                .rotationEffect(.degrees(-dataManager.rollDeg))
-
-                                // 固定准星十字
-                                Image(systemName: "plus")
-                                    .font(.system(size: 26, weight: .heavy))
-                                    .foregroundStyle(.yellow)
-                            }
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
-                        }
-                        .frame(height: 190)
-
-                        // 仪表角标数值
-                        VStack {
-                            HStack {
-                                Text("PITCH: \(String(format: "%+.1f°", dataManager.pitchDeg))")
-                                Spacer()
-                                Text("ROLL: \(String(format: "%+.1f°", dataManager.rollDeg))")
-                            }
-                            .font(.caption.bold().monospaced())
-                            .foregroundStyle(.white)
-                            .padding(10)
-                            Spacer()
-                            HStack {
-                                Text("HDG: \(Int(dataManager.groundTrackDeg))°")
-                                Spacer()
-                                Text("SPD: \(Int(dataManager.groundSpeedKts)) KTS")
-                            }
-                            .font(.caption.bold().monospaced())
-                            .foregroundStyle(.white)
-                            .padding(10)
-                        }
-                    }
+                    // 2. 航空专业级主飞行姿态仪 (PFD) - Metal 硬件加速，零卡顿零溢出
+                    PrimaryFlightDisplayView(
+                        pitch: dataManager.pitchDeg,
+                        roll: dataManager.rollDeg,
+                        heading: dataManager.groundTrackDeg,
+                        speedKts: dataManager.groundSpeedKts,
+                        altitudeFt: dataManager.geometricAltitudeFt
+                    )
                     .padding(.horizontal)
 
                     // 3. 真实“双高”与客舱增压系统看板
