@@ -192,6 +192,8 @@ public final class FlightDataManager: @unchecked Sendable {
         }
     }
 
+    private var recordingStartTime: Date = Date()
+
     // MARK: - 真实飞行实战操作
 
     /// 开始飞行全程黑匣子记录 (升级为长航时后台保活与 50Hz 采样)
@@ -200,15 +202,25 @@ public final class FlightDataManager: @unchecked Sendable {
         isRecording = true
         latestTouchdown = nil
         telemetryHistory.removeAll()
+        recordingStartTime = Date()
         BackgroundFlightTracker.shared.startBackgroundTracking()
         appendCurrentTelemetryFrame()
     }
 
-    /// 停止飞行记录并保持基础传感器监听
+    /// 停止飞行记录并自动归档到飞行记录日志库
     public func stopFlightRecording() {
         guard isRecording else { return }
         isRecording = false
         BackgroundFlightTracker.shared.stopBackgroundTracking()
+
+        let endTime = Date()
+        FlightRecordStore.shared.saveSession(
+            flight: self.currentFlight,
+            frames: self.telemetryHistory,
+            latestTouchdown: self.latestTouchdown,
+            startTime: self.recordingStartTime,
+            endTime: endTime
+        )
     }
 
     /// 执行机体轴正交对准 (消除手机在客舱内任意放置的倾角)

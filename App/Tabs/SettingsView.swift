@@ -29,37 +29,7 @@ public struct SettingsView: View {
                     Toggle("起降关键阶段启用微音保活通道", isOn: $keepAliveAudio)
                 }
 
-                // 2. 真实黑匣子文件导出与分享
-                Section("黑匣子真实文件导出 (当前缓存 \(dataManager.telemetryHistory.count) 帧)") {
-                    Button {
-                        exportFile(format: "gpx")
-                    } label: {
-                        Label("导出标准 GPX 航迹 (两步路 / 航旅回顾)", systemImage: "point.topleft.down.to.point.bottomright.curvepath")
-                    }
-                    .disabled(dataManager.telemetryHistory.isEmpty)
-
-                    Button {
-                        exportFile(format: "kml")
-                    } label: {
-                        Label("导出 3D KML 彩色轨迹 (Google Earth 三维拉伸)", systemImage: "globe.asia.australia.fill")
-                    }
-                    .disabled(dataManager.telemetryHistory.isEmpty)
-
-                    Button {
-                        exportFile(format: "csv")
-                    } label: {
-                        Label("导出 50Hz 原始力学遥测 CSV (含 G值与客舱压)", systemImage: "tablecells")
-                    }
-                    .disabled(dataManager.telemetryHistory.isEmpty)
-
-                    if let msg = exportToastMessage {
-                        Text(msg)
-                            .font(.caption2)
-                            .foregroundStyle(.green)
-                    }
-                }
-
-                // 3. 离线资源管理与按需下载
+                // 2. 离线资源管理与按需下载
                 Section("离线航电资源包管理") {
                     NavigationLink {
                         OfflineResourcesManagementView()
@@ -81,12 +51,48 @@ public struct SettingsView: View {
                     }
                 }
 
-                // 4. 单位体系
+                // 3. 单位体系
                 Section("航空计量单位制") {
                     Picker("单位制", selection: $unitSystem) {
                         Text("民航标准制 (FT, KTS, NM, hPa)").tag("aviation")
                         Text("公制 (米, 公里/小时, KM)").tag("metric")
                     }
+                }
+
+                // 4. 活跃会话应急导出
+                Section {
+                    Button {
+                        exportFile(format: "gpx")
+                    } label: {
+                        Label("导出当前活跃航迹 GPX", systemImage: "point.topleft.down.to.point.bottomright.curvepath")
+                    }
+                    .disabled(dataManager.telemetryHistory.isEmpty)
+
+                    Button {
+                        exportFile(format: "kml")
+                    } label: {
+                        Label("导出当前活跃轨迹 3D KML", systemImage: "globe.asia.australia.fill")
+                    }
+                    .disabled(dataManager.telemetryHistory.isEmpty)
+
+                    Button {
+                        exportFile(format: "csv")
+                    } label: {
+                        Label("导出当前 50Hz 原始力学遥测 CSV", systemImage: "tablecells")
+                    }
+                    .disabled(dataManager.telemetryHistory.isEmpty)
+
+                    if let msg = exportToastMessage {
+                        Text(msg)
+                            .font(.caption2)
+                            .foregroundStyle(.green)
+                    }
+                } header: {
+                    Text("当前会话内存导出 (当前缓存 \(dataManager.telemetryHistory.count) 帧)")
+                } footer: {
+                    Text("提示：历史每次航班的专业黑匣子记录已自动归档在【飞行记录】页面，可前往按航班号或航线进行查看、聚合管理与单独导出。此处仅作为当前飞行会话的临时调试导出。")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
 
                 // 5. 调试与缓存操作

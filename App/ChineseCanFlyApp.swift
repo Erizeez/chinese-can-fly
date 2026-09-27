@@ -34,11 +34,17 @@ struct MainTabView: View {
                 }
                 .tag(2)
 
+            FlightRecordsView()
+                .tabItem {
+                    Label("飞行记录", systemImage: "list.bullet.rectangle.portrait.fill")
+                }
+                .tag(3)
+
             SettingsView()
                 .tabItem {
                     Label("设置", systemImage: "gearshape")
                 }
-                .tag(3)
+                .tag(4)
         }
         .tint(.blue)
     }

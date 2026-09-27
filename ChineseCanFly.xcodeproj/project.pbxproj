@@ -11,6 +11,7 @@
 		2B4D876210127472BCC887A4 /* FlightDataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2DDE55796A0A2FCCE8BA0DD /* FlightDataView.swift */; };
 		434C2E4956FF4360D9FD1AFB /* FlightDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D92AF95EFE0298D67FF2A780 /* FlightDataManager.swift */; };
 		513DED83B19B9537F8CBF724 /* AvionicsTelemetryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2657524D06DF5DA18EF930D1 /* AvionicsTelemetryView.swift */; };
+		76021498427644726EC7C75A /* FlightRecordsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01D87102BFB87B06A6294EA0 /* FlightRecordsView.swift */; };
 		892819A72A12CB03AF357751 /* FlightPlanStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19106EA799670D14B507FEB0 /* FlightPlanStore.swift */; };
 		B990F54D9218E826E0975053 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A900CD71A8BE0FC43F21356 /* SettingsView.swift */; };
 		D5F238C6A9F239A6CA7A5940 /* CCFlyCore in Frameworks */ = {isa = PBXBuildFile; productRef = F7C5BFC3055A537F3BC41971 /* CCFlyCore */; };
@@ -20,6 +21,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		01D87102BFB87B06A6294EA0 /* FlightRecordsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightRecordsView.swift; sourceTree = "<group>"; };
 		19106EA799670D14B507FEB0 /* FlightPlanStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightPlanStore.swift; sourceTree = "<group>"; };
 		1C6084A9446081E50AEB069E /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 		2657524D06DF5DA18EF930D1 /* AvionicsTelemetryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvionicsTelemetryView.swift; sourceTree = "<group>"; };
@@ -68,6 +70,7 @@
 				ADF4A85E5958CD1BBB1EA259 /* AeronauticalMapView.swift */,
 				2657524D06DF5DA18EF930D1 /* AvionicsTelemetryView.swift */,
 				B2DDE55796A0A2FCCE8BA0DD /* FlightDataView.swift */,
+				01D87102BFB87B06A6294EA0 /* FlightRecordsView.swift */,
 				C8DFBEC409260C18FAB0DDBB /* OfflineResourcesManagementView.swift */,
 				8A900CD71A8BE0FC43F21356 /* SettingsView.swift */,
 			);
@@ -189,6 +192,7 @@
 				434C2E4956FF4360D9FD1AFB /* FlightDataManager.swift in Sources */,
 				2B4D876210127472BCC887A4 /* FlightDataView.swift in Sources */,
 				892819A72A12CB03AF357751 /* FlightPlanStore.swift in Sources */,
+				76021498427644726EC7C75A /* FlightRecordsView.swift in Sources */,
 				F0AF26B62674BAE41907A2A0 /* OfflineResourcesManagementView.swift in Sources */,
 				E744587ABDF47CCC60D86475 /* PrimaryFlightDisplayView.swift in Sources */,
 				B990F54D9218E826E0975053 /* SettingsView.swift in Sources */,
