@@ -1,90 +1,145 @@
 import SwiftUI
+import CCFlyCore
 
-/// 设置与系统配置 Tab 页面
+/// 设置与飞行黑匣子导出管理视图
 public struct SettingsView: View {
+    @State private var dataManager = FlightDataManager.shared
     @AppStorage("sensorRate") private var sensorRate: Int = 50
     @AppStorage("unitSystem") private var unitSystem: String = "aviation"
     @AppStorage("autoBlackbox") private var autoBlackbox: Bool = true
     @AppStorage("keepAliveAudio") private var keepAliveAudio: Bool = true
+
+    @State private var exportedFileURL: URL? = nil
+    @State private var showShareSheet: Bool = false
+    @State private var exportToastMessage: String? = nil
 
     public init() {}
 
     public var body: some View {
         NavigationStack {
             Form {
+                // 1. 传感器与飞行记录配置
                 Section("传感器融合与采样率") {
                     Picker("采样刷新率", selection: $sensorRate) {
-                        Text("50 Hz (极客高精/着陆黑匣)").tag(50)
-                        Text("10 Hz (平衡模式)").tag(10)
-                        Text("1 Hz (长途超低功耗)").tag(1)
+                        Text("50 Hz (极客高精/起降黑匣)").tag(50)
+                        Text("10 Hz (平衡巡航模式)").tag(10)
+                        Text("1 Hz (长途低功耗)").tag(1)
                     }
-                    Toggle("自动识别飞行阶段调整采样率", isOn: $autoBlackbox)
+                    Toggle("智能起降工况自适应升频", isOn: $autoBlackbox)
                     Toggle("起降关键阶段启用微音保活通道", isOn: $keepAliveAudio)
                 }
 
-                Section("离线数据包管理") {
+                // 2. 真实黑匣子文件导出与分享
+                Section("黑匣子真实文件导出 (当前缓存 \(dataManager.telemetryHistory.count) 帧)") {
+                    Button {
+                        exportFile(format: "gpx")
+                    } label: {
+                        Label("导出标准 GPX 航迹 (两步路 / 航旅回顾)", systemImage: "point.topleft.down.to.point.bottomright.curvepath")
+                    }
+                    .disabled(dataManager.telemetryHistory.isEmpty)
+
+                    Button {
+                        exportFile(format: "kml")
+                    } label: {
+                        Label("导出 3D KML 彩色轨迹 (Google Earth 三维拉伸)", systemImage: "globe.asia.australia.fill")
+                    }
+                    .disabled(dataManager.telemetryHistory.isEmpty)
+
+                    Button {
+                        exportFile(format: "csv")
+                    } label: {
+                        Label("导出 50Hz 原始力学遥测 CSV (含 G值与客舱压)", systemImage: "tablecells")
+                    }
+                    .disabled(dataManager.telemetryHistory.isEmpty)
+
+                    if let msg = exportToastMessage {
+                        Text(msg)
+                            .font(.caption2)
+                            .foregroundStyle(.green)
+                    }
+                }
+
+                // 3. 离线数据库信息
+                Section("离线航空数据库 (OurAirports & CAAC)") {
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("中国区域机场与跑道数据库")
+                            Text("中国境内机场与跑道元数据库")
                                 .font(.subheadline)
-                            Text("包含 250+ 运输机场、400+ 通航跑道参数 (OurAirports)")
+                            Text("已收录 779 座机场、354 条跑道真实走向")
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Text("已安装 (v2026.09)")
+                        Text("已离线装载")
                             .font(.caption2.bold())
                             .foregroundStyle(.green)
                     }
 
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("离线全国矢量底图 (省界与水系)")
+                            Text("国内核心航线计划网络")
                                 .font(.subheadline)
-                            Text("MapLibre 离线切片 (MBTiles)")
+                            Text("预置 5000+ 干线航班号、起降机场对与大圆航距")
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Button("检查更新") {}
-                            .font(.caption)
+                        Text("100% 离线就绪")
+                            .font(.caption2.bold())
+                            .foregroundStyle(.blue)
                     }
                 }
 
-                Section("计量单位体系") {
+                // 4. 单位体系
+                Section("航空计量单位制") {
                     Picker("单位制", selection: $unitSystem) {
                         Text("民航标准制 (FT, KTS, NM, hPa)").tag("aviation")
-                        Text("国际公制 (米, 公里/小时, KM)").tag("metric")
+                        Text("公制 (米, 公里/小时, KM)").tag("metric")
                     }
                 }
 
-                Section("黑匣子飞行日志导出") {
-                    Button {
-                        // 导出 GPX
+                // 5. 调试与缓存操作
+                Section("系统维护与重置") {
+                    Button(role: .destructive) {
+                        dataManager.telemetryHistory.removeAll()
+                        exportToastMessage = "已清空当前飞行缓存队列。"
                     } label: {
-                        Label("导出 GPX 轨迹 (适配 Google Earth / 两步路)", systemImage: "arrow.down.doc")
-                    }
-
-                    Button {
-                        // 导出 KML 3D
-                    } label: {
-                        Label("导出 3D KML 彩色高度轨迹", systemImage: "map")
-                    }
-
-                    Button {
-                        // 导出 CSV
-                    } label: {
-                        Label("导出 50Hz 原始传感器 CSV (用于科研分析)", systemImage: "tablecells")
+                        Text("清空当前航迹缓存")
                     }
                 }
 
-                Section("关于“中国人能飞”") {
+                // 6. 关于
+                Section("关于“中国人能飞” (Chinese Can Fly)") {
                     LabeledContent("版本号", value: "1.0.0 (Build 2026.09)")
-                    LabeledContent("设计理念", value: "纯端侧 · 全离线 · 航空级传感器融合")
-                    LabeledContent("GitHub", value: "Erizeez/chinese-can-fly")
+                    LabeledContent("硬件适配", value: "iPhone 14 Pro ~ 18 Pro (双频GNSS+6轴IMU)")
+                    LabeledContent("代码仓库", value: "github.com/Erizeez/chinese-can-fly")
                 }
             }
             .navigationTitle("设置与工具")
+            .sheet(isPresented: $showShareSheet) {
+                if let url = exportedFileURL {
+                    ShareSheetView(activityItems: [url])
+                }
+            }
         }
     }
+
+    private func exportFile(format: String) {
+        if let fileURL = dataManager.exportCurrentFlight(format: format) {
+            self.exportedFileURL = fileURL
+            self.showShareSheet = true
+            self.exportToastMessage = "已生成 \(format.uppercased()) 文件: \(fileURL.lastPathComponent)"
+        }
+    }
+}
+
+/// 系统分享面板包装器 (UIActivityViewController)
+struct ShareSheetView: UIViewControllerRepresentable {
+    let activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }

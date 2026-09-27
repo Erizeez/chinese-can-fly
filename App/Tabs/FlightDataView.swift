@@ -1,172 +1,322 @@
 import SwiftUI
 import CCFlyCore
 
-/// 航班数据 Tab 页面
+/// 航班数据 Tab 页面 (完全数据驱动与多源检索)
 public struct FlightDataView: View {
+    @State private var dataManager = FlightDataManager.shared
     @State private var callsignInput: String = "CA1501"
-    @State private var selectedTab: Int = 0
-    @State private var currentFlight: FlightPlan = FlightPlan(
-        callsign: "CA1501",
-        airline: "中国国际航空 (Air China)",
-        aircraftModel: "Airbus A350-941",
-        departureIATA: "PEK",
-        departureICAO: "ZBAA",
-        arrivalIATA: "SHA",
-        arrivalICAO: "ZSSS",
-        distanceNM: 588.0,
-        plannedCruiseAltitudeFt: 35000
-    )
+    @State private var isSearchingOnline: Bool = false
+    @State private var onlineResult: AirborneState? = nil
+    @State private var onlineErrorMessage: String? = nil
+    @State private var showWaypointsSheet: Bool = false
+
+    // 推荐快速切换的经典干线与国产大飞机 C919 航班
+    private let presetFlights = ["CA1501", "MU9191", "CZ3101", "3U8881", "HU7601"]
 
     public init() {}
 
     public var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 18) {
-                    // 航班号快速检索卡片
+                VStack(spacing: 16) {
+                    // 1. 航班号离线快速检索栏
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("航班计划检索 (支持离线库)")
-                            .font(.caption)
+                        Text("全离线国内干线检索 (输入即查)")
+                            .font(.caption.bold())
                             .foregroundStyle(.secondary)
                         
                         HStack {
                             Image(systemName: "magnifyingglass")
                                 .foregroundStyle(.blue)
-                            TextField("输入航班号 (如 CA1501, MU5101)", text: $callsignInput)
+                            TextField("输入航班号 (如 CA1501, MU9191)", text: $callsignInput)
                                 .textInputAutocapitalization(.characters)
+                                .autocorrectionDisabled()
+                            
                             Button("查询") {
-                                // 离线/在线多源检索
+                                performOfflineLookup()
                             }
                             .buttonStyle(.borderedProminent)
                         }
                         .padding(10)
                         .background(Color(.secondarySystemBackground))
                         .clipShape(RoundedRectangle(cornerRadius: 10))
-                    }
-                    .padding()
-                    .background(Color(.systemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
-                    .shadow(color: .black.opacity(0.05), radius: 5)
 
-                    // 航班基本信息卡片
-                    VStack(spacing: 14) {
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text(currentFlight.callsign)
-                                    .font(.system(size: 28, weight: .black, design: .monospaced))
-                                Text("\(currentFlight.airline) · \(currentFlight.aircraftModel)")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            Text("已安排")
-                                .font(.caption.bold())
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
-                                .background(Color.green.opacity(0.15))
-                                .foregroundStyle(.green)
-                                .clipShape(Capsule())
-                        }
-
-                        Divider()
-
-                        HStack {
-                            VStack(alignment: .leading) {
-                                Text(currentFlight.departureIATA)
-                                    .font(.system(size: 32, weight: .heavy))
-                                Text(currentFlight.departureICAO)
-                                    .font(.caption.monospaced())
-                                    .foregroundStyle(.secondary)
-                                Text("北京首都")
-                                    .font(.footnote)
-                            }
-                            Spacer()
-                            VStack {
-                                Image(systemName: "airplane")
-                                    .font(.title2)
+                        // 热门/推荐航线快捷胶囊
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(presetFlights, id: \.self) { callsign in
+                                    Button(callsign) {
+                                        callsignInput = callsign
+                                        performOfflineLookup()
+                                    }
+                                    .font(.caption2.monospaced())
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(Color.blue.opacity(0.1))
                                     .foregroundStyle(.blue)
-                                Text("\(Int(currentFlight.distanceNM)) NM")
-                                    .font(.caption2.bold())
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            VStack(alignment: .trailing) {
-                                Text(currentFlight.arrivalIATA)
-                                    .font(.system(size: 32, weight: .heavy))
-                                Text(currentFlight.arrivalICAO)
-                                    .font(.caption.monospaced())
-                                    .foregroundStyle(.secondary)
-                                Text("上海虹桥")
-                                    .font(.footnote)
+                                    .clipShape(Capsule())
+                                }
                             }
                         }
                     }
                     .padding()
                     .background(Color(.systemBackground))
                     .clipShape(RoundedRectangle(cornerRadius: 14))
-                    .shadow(color: .black.opacity(0.05), radius: 5)
 
-                    // 数据来源接入状态卡片
+                    // 2. 当前选中航班真实计划卡片
+                    if let flight = dataManager.currentFlight {
+                        VStack(spacing: 14) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(flight.callsign)
+                                        .font(.system(size: 30, weight: .black, design: .monospaced))
+                                    Text("\(flight.airline) · \(flight.aircraftModel)")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Text("计划巡航 FL\(Int(flight.plannedCruiseAltitudeFt / 100))")
+                                    .font(.caption.bold().monospaced())
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(Color.blue.opacity(0.15))
+                                    .foregroundStyle(.blue)
+                                    .clipShape(Capsule())
+                            }
+
+                            Divider()
+
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(flight.departureIATA)
+                                        .font(.system(size: 34, weight: .heavy))
+                                    Text(flight.departureICAO)
+                                        .font(.caption.monospaced())
+                                        .foregroundStyle(.secondary)
+                                    Text(getAirportCity(iata: flight.departureIATA))
+                                        .font(.footnote)
+                                }
+                                Spacer()
+                                VStack(spacing: 4) {
+                                    Image(systemName: "airplane")
+                                        .font(.title2)
+                                        .foregroundStyle(.blue)
+                                    Text("\(Int(flight.distanceNM)) NM")
+                                        .font(.caption2.bold().monospaced())
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                VStack(alignment: .trailing, spacing: 2) {
+                                    Text(flight.arrivalIATA)
+                                        .font(.system(size: 34, weight: .heavy))
+                                    Text(flight.arrivalICAO)
+                                        .font(.caption.monospaced())
+                                        .foregroundStyle(.secondary)
+                                    Text(getAirportCity(iata: flight.arrivalIATA))
+                                        .font(.footnote)
+                                }
+                            }
+
+                            Divider()
+
+                            // 查看大圆航线导航点详情按钮
+                            Button {
+                                showWaypointsSheet = true
+                            } label: {
+                                Label("查看大圆航线与沿途离散航路点", systemImage: "point.topleft.down.to.point.bottomright.curvepath")
+                                    .font(.caption.bold())
+                            }
+                        }
+                        .padding()
+                        .background(Color(.systemBackground))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+
+                    // 3. 在线真实 OpenSky 态势探测卡片
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("数据通道状态 (Data Link)")
+                        HStack {
+                            Text("在线开放 ADS-B 态势 (OpenSky)")
+                                .font(.headline)
+                            Spacer()
+                            Button {
+                                fetchOnlineState()
+                            } label: {
+                                if isSearchingOnline {
+                                    ProgressView()
+                                        .scaleEffect(0.8)
+                                } else {
+                                    Label("联网刷新", systemImage: "arrow.clockwise")
+                                        .font(.caption2.bold())
+                                }
+                            }
+                            .buttonStyle(.bordered)
+                        }
+
+                        if let online = onlineResult {
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack {
+                                    Text("空中呼号: \(online.callsign)")
+                                        .font(.subheadline.bold())
+                                    Spacer()
+                                    Text(online.onGround ? "地面滑行" : "空中巡航")
+                                        .font(.caption2.bold())
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(online.onGround ? Color.orange.opacity(0.15) : Color.green.opacity(0.15))
+                                        .foregroundStyle(online.onGround ? .orange : .green)
+                                        .clipShape(Capsule())
+                                }
+                                Text("真实地速: \(Int(online.velocityKts ?? 0)) KTS · 航向: \(Int(online.trueTrackDeg ?? 0))°")
+                                    .font(.caption.monospaced())
+                                if let baroAlt = online.baroAltitudeMeters {
+                                    Text("ADS-B 气压高度: \(Int(baroAlt * 3.28084)) FT")
+                                        .font(.caption.monospaced())
+                                        .foregroundStyle(.blue)
+                                }
+                            }
+                            .padding(10)
+                            .background(Color(.secondarySystemBackground))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                        } else if let error = onlineErrorMessage {
+                            Text(error)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text("点击“联网刷新”尝试从全球 OpenSky 开放接收基站探测该机当前空中广播报文。")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding()
+                    .background(Color(.systemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+
+                    // 4. 便携 SDR 硬件接入状态
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("极客便携 SDR (WiFi 广播)")
                             .font(.headline)
                         
-                        DataSourceStatusRow(
-                            title: "本地离线航线数据库",
-                            detail: "内置全国 5000+ 热门航班离线基线",
-                            status: "可用 (100% 离线)",
-                            isGreen: true
-                        )
-                        DataSourceStatusRow(
-                            title: "OpenSky Network 在线 ADS-B",
-                            detail: "全球开放科研航空网络",
-                            status: "在线连接中",
-                            isGreen: true
-                        )
-                        DataSourceStatusRow(
-                            title: "极客便携 SDR / WiFi 接收机",
-                            detail: "Dump1090 / GDL90 本地局域网广播",
-                            status: "未配置 (可选)",
-                            isGreen: false
-                        )
+                        Text("支持在机舱内通过 WiFi 监听随身便携式 Stratux / Dump1090 (1090MHz ADS-B) 接收机。")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        
+                        HStack {
+                            Text("局域网目标:")
+                                .font(.caption2)
+                            Text("http://192.168.10.1:8080")
+                                .font(.caption2.monospaced())
+                                .foregroundStyle(.blue)
+                            Spacer()
+                            Button("测试连接") {
+                                testSDRConnection()
+                            }
+                            .font(.caption2)
+                            .buttonStyle(.bordered)
+                        }
                     }
                     .padding()
                     .background(Color(.systemBackground))
                     .clipShape(RoundedRectangle(cornerRadius: 14))
-                    .shadow(color: .black.opacity(0.05), radius: 5)
                 }
                 .padding()
             }
             .navigationTitle("航班数据")
             .background(Color(.systemGroupedBackground))
+            .sheet(isPresented: $showWaypointsSheet) {
+                if let flight = dataManager.currentFlight {
+                    WaypointsDetailSheet(flight: flight)
+                }
+            }
         }
+    }
+
+    private func performOfflineLookup() {
+        if let found = OfflineFlightDatabase.shared.lookupFlight(callsign: callsignInput) {
+            dataManager.currentFlight = found
+            onlineResult = nil
+            onlineErrorMessage = nil
+        } else {
+            onlineErrorMessage = "离线库暂未收录 \(callsignInput)，可通过设置添加或在线检索。"
+        }
+    }
+
+    private func fetchOnlineState() {
+        guard let flight = dataManager.currentFlight else { return }
+        isSearchingOnline = true
+        onlineErrorMessage = nil
+
+        Task {
+            do {
+                let state = try await OpenSkyClient.shared.fetchFlightState(callsign: flight.callsign)
+                await MainActor.run {
+                    self.isSearchingOnline = false
+                    if let state = state {
+                        self.onlineResult = state
+                        self.dataManager.activeFlightState = state
+                    } else {
+                        self.onlineErrorMessage = "当前 OpenSky 开放网络暂未捕获到呼号为 \(flight.callsign) 的实时信号 (可能未在空中起飞或处于雷达盲区)。"
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    self.isSearchingOnline = false
+                    self.onlineErrorMessage = "连接 OpenSky API 失败: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    private func testSDRConnection() {
+        Task {
+            do {
+                let acList = try await OpenSkyClient.shared.fetchDump1090Aircraft()
+                await MainActor.run {
+                    self.onlineErrorMessage = "成功连接本地便携 SDR，当前周围空域捕获到 \(acList.count) 架飞机！"
+                }
+            } catch {
+                await MainActor.run {
+                    self.onlineErrorMessage = "未能连接本地 SDR 硬件 (192.168.10.1): \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    private func getAirportCity(iata: String) -> String {
+        return AirportRepository.shared.findAirport(code: iata)?.name ?? iata
     }
 }
 
-struct DataSourceStatusRow: View {
-    let title: String
-    let detail: String
-    let status: String
-    let isGreen: Bool
+/// 大圆航线沿途航路点弹出抽屉
+struct WaypointsDetailSheet: View {
+    let flight: FlightPlan
 
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title)
-                    .font(.subheadline.bold())
-                Text(detail)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+        NavigationStack {
+            let dep = AirportRepository.shared.findAirport(code: flight.departureIATA)
+            let arr = AirportRepository.shared.findAirport(code: flight.arrivalIATA)
+            let waypoints = NavigationMath.generateGreatCircleWaypoints(
+                lat1: dep?.latitude ?? 39.9,
+                lon1: dep?.longitude ?? 116.4,
+                lat2: arr?.latitude ?? 31.2,
+                lon2: arr?.longitude ?? 121.4,
+                count: 15
+            )
+
+            List(waypoints) { wpt in
+                HStack {
+                    Text("航路点 #\(wpt.id + 1)")
+                        .font(.subheadline.monospaced())
+                    Spacer()
+                    Text(String(format: "%.3f°N, %.3f°E", wpt.latitude, wpt.longitude))
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                    Text("\(Int(wpt.distancePercent * 100))%")
+                        .font(.caption2.bold())
+                        .foregroundStyle(.blue)
+                }
             }
-            Spacer()
-            Text(status)
-                .font(.caption2.bold())
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .background(isGreen ? Color.green.opacity(0.15) : Color.gray.opacity(0.15))
-                .foregroundStyle(isGreen ? .green : .secondary)
-                .clipShape(Capsule())
+            .navigationTitle("大圆航路插值点 (\(flight.callsign))")
+            .navigationBarTitleDisplayMode(.inline)
         }
-        .padding(.vertical, 4)
     }
 }
