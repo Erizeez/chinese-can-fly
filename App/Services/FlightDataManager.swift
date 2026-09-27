@@ -61,9 +61,14 @@ public final class FlightDataManager: @unchecked Sendable {
     private var lastRawAcceleration: simd_double3 = .zero
     private var lastRecordedTick: Date = Date.distantPast
 
-    // 节流与丢帧保护：锁定最大 30fps 派发主线程，彻底消除 UI 线程饥饿
-    private var lastMotionDispatchTime: Double = 0
-    private var isMotionDispatchPending: Bool = false
+    // 高低频双通道派发架构：姿态仪高刷 (最高 100fps 带死区过滤) 与 动力学看板 (10Hz 节流)
+    private var lastAttitudeDispatchTime: Double = 0
+    private var lastDispatchedPitch: Double = 0.0
+    private var lastDispatchedRoll: Double = 0.0
+    private var isAttitudeDispatchPending: Bool = false
+
+    private var lastDynamicsDispatchTime: Double = 0
+    private var isDynamicsDispatchPending: Bool = false
     private var filteredPitch: Double = 0.0
     private var filteredRoll: Double = 0.0
 
@@ -143,38 +148,53 @@ public final class FlightDataManager: @unchecked Sendable {
 
             let curPitch = self.filteredPitch
             let curRoll = self.filteredRoll
-
-            // 2. 解锁 60Hz / 120Hz ProMotion 极速分发 (最高 120 帧/秒，间隔 8.3ms)
             let nowMedia = CACurrentMediaTime()
-            guard nowMedia - self.lastMotionDispatchTime >= 0.008 else { return }
-            guard !self.isMotionDispatchPending else { return }
-            self.isMotionDispatchPending = true
-            self.lastMotionDispatchTime = nowMedia
 
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
-                self.isMotionDispatchPending = false
+            // 2. 姿态角独立高频通道 (专为 PFD 供给，最高 100fps，带 0.02° 死区过滤，杜绝无效重绘)
+            let pitchDiff = abs(curPitch - self.lastDispatchedPitch)
+            let rollDiff = abs(curRoll - self.lastDispatchedRoll)
+            if (nowMedia - self.lastAttitudeDispatchTime >= 0.010) && (pitchDiff > 0.02 || rollDiff > 0.02) && !self.isAttitudeDispatchPending {
+                self.isAttitudeDispatchPending = true
+                self.lastAttitudeDispatchTime = nowMedia
+                self.lastDispatchedPitch = curPitch
+                self.lastDispatchedRoll = curRoll
 
-                self.pitchDeg = curPitch
-                self.rollDeg = curRoll
-                self.normalGForce = computedNz
-                self.longitudinalGForce = computedNx
-                self.lateralGForce = computedNy
-                self.turbulenceEDR = computedEDR
-
-                // 检测是否刚刚发生着陆接地冲击
-                if self.flightPhase == .touchdown && self.latestTouchdown == nil {
-                    self.latestTouchdown = self.dynamicsAnalyzer.evaluateTouchdown(
-                        peakNormalG: computedNz,
-                        touchdownSinkRateFpm: -self.cabinVSIFpm
-                    )
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.isAttitudeDispatchPending = false
+                    self.pitchDeg = curPitch
+                    self.rollDeg = curRoll
                 }
+            }
 
-                // 黑匣子时序图表严格按 1Hz 节流写入
-                let now = Date()
-                if self.isRecording && now.timeIntervalSince(self.lastRecordedTick) >= 1.0 {
-                    self.lastRecordedTick = now
-                    self.appendCurrentTelemetryFrame()
+            // 3. 动力学过载独立低频通道 (10Hz 节流，每 100ms 更新看板，主线程负载削减 90%)
+            if (nowMedia - self.lastDynamicsDispatchTime >= 0.100) && !self.isDynamicsDispatchPending {
+                self.isDynamicsDispatchPending = true
+                self.lastDynamicsDispatchTime = nowMedia
+
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.isDynamicsDispatchPending = false
+
+                    self.normalGForce = computedNz
+                    self.longitudinalGForce = computedNx
+                    self.lateralGForce = computedNy
+                    self.turbulenceEDR = computedEDR
+
+                    // 检测是否刚刚发生着陆接地冲击
+                    if self.flightPhase == .touchdown && self.latestTouchdown == nil {
+                        self.latestTouchdown = self.dynamicsAnalyzer.evaluateTouchdown(
+                            peakNormalG: computedNz,
+                            touchdownSinkRateFpm: -self.cabinVSIFpm
+                        )
+                    }
+
+                    // 黑匣子时序图表严格按 1Hz 节流写入
+                    let now = Date()
+                    if self.isRecording && now.timeIntervalSince(self.lastRecordedTick) >= 1.0 {
+                        self.lastRecordedTick = now
+                        self.appendCurrentTelemetryFrame()
+                    }
                 }
             }
         }
