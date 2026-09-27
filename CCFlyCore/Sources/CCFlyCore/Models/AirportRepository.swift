@@ -86,6 +86,7 @@ public final class AirportRepository: @unchecked Sendable {
             indexAirports(decoded)
             self.isLoaded = true
             lock.unlock()
+            print("✈️ [AIRPORT_REPO] 成功在后台载入 \(decoded.count) 座机场与跑道物理模型")
         } catch {
             print("后台解析机场数据库失败: \(error)")
         }

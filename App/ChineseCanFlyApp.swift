@@ -1,8 +1,18 @@
 import SwiftUI
+import MapKit
 import CCFlyCore
 
 @main
 struct ChineseCanFlyApp: App {
+    init() {
+        MainThreadHitchMonitor.startMonitoring()
+        // 核心优化：启动首帧静默就绪常驻单例航图 (Metal 管线与 VectorKit 渲染器就绪)
+        DispatchQueue.main.async {
+            _ = AviationMapViewRepresentable.sharedMapView
+            print("🚀 [PREWARM] Aviation MapView pre-warmed successfully")
+        }
+    }
+
     var body: some Scene {
         WindowGroup {
             MainTabView()

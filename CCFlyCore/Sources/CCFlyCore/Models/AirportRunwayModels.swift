@@ -2,7 +2,7 @@ import Foundation
 
 /// 机场实体模型
 public struct Airport: Codable, Identifiable, Sendable {
-    public let id: String
+    public var id: String { ident }
     public let ident: String
     public let icao: String
     public let iata: String
@@ -13,6 +13,11 @@ public struct Airport: Codable, Identifiable, Sendable {
     public let elevationFt: Double?
     public let type: String
     public var runways: [Runway]
+
+    enum CodingKeys: String, CodingKey {
+        case ident, icao, iata, name, municipality, latitude, longitude, type, runways
+        case elevationFt = "elevation_ft"
+    }
 
     public init(
         ident: String,
@@ -26,7 +31,6 @@ public struct Airport: Codable, Identifiable, Sendable {
         type: String = "large_airport",
         runways: [Runway] = []
     ) {
-        self.id = ident
         self.ident = ident
         self.icao = icao
         self.iata = iata
@@ -61,6 +65,22 @@ public struct Runway: Codable, Identifiable, Sendable {
     public let heLongitude: Double?
     public let heElevationFt: Double?
     public let heHeadingDegT: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case id, surface, lighted
+        case lengthFt = "length_ft"
+        case widthFt = "width_ft"
+        case leIdent = "le_ident"
+        case leLatitude = "le_latitude"
+        case leLongitude = "le_longitude"
+        case leElevationFt = "le_elevation_ft"
+        case leHeadingDegT = "le_heading_degT"
+        case heIdent = "he_ident"
+        case heLatitude = "he_latitude"
+        case heLongitude = "he_longitude"
+        case heElevationFt = "he_elevation_ft"
+        case heHeadingDegT = "he_heading_degT"
+    }
 
     public init(
         id: String,

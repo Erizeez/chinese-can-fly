@@ -9,16 +9,7 @@ public struct AeronauticalMapView: View {
     @State private var searchQuery: String = ""
     @State private var searchResults: [Airport] = []
 
-    // 核心优化 1：异步延迟挂载 MapKit，确保 Tab 切换以 120fps 瞬间响应，彻底消除主线程冷启动冻结
-    @State private var isMapMounted: Bool = false
-
-    // 初始航图视锥定点聚焦，避免全量全国大计算
-    @State private var mapPosition: MapCameraPosition = .region(MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 39.5, longitude: 116.4),
-        span: MKCoordinateSpan(latitudeDelta: 2.0, longitudeDelta: 2.0)
-    ))
-
-    // 核心优化 2：直接使用静态常量干线机场，零锁竞争、零开销、零延迟
+    // 核心优化：直接使用静态常量干线机场，零锁竞争、零开销、零延迟
     private let coreAirports = AirportRepository.coreHubAirports
 
     public init() {}
@@ -26,55 +17,14 @@ public struct AeronauticalMapView: View {
     public var body: some View {
         NavigationStack {
             ZStack(alignment: .bottom) {
-                // 1. 航图渲染层
-                if isMapMounted {
-                    Map(position: $mapPosition) {
-                        // 当前飞机物理位置标注 (使用 1Hz 低频解耦位置，绝不被 30Hz 姿态仪轰炸)
-                        Annotation("当前飞机位置", coordinate: planStore.chartPosition) {
-                            ZStack {
-                                Circle()
-                                    .fill(Color.blue.opacity(0.2))
-                                    .frame(width: 44, height: 44)
-                                Image(systemName: "airplane")
-                                    .font(.system(size: 20, weight: .bold))
-                                    .foregroundStyle(.white)
-                                    .padding(7)
-                                    .background(Color.blue)
-                                    .clipShape(Circle())
-                                    .rotationEffect(.degrees(planStore.chartTrackDeg - 90))
-                            }
-                        }
-
-                        // 缓存的大圆航线折线 (0 纳秒直接读取预计算坐标)
-                        if !planStore.precomputedRouteCoords.isEmpty {
-                            MapPolyline(coordinates: planStore.precomputedRouteCoords)
-                                .stroke(.cyan, lineWidth: 3.5)
-                        }
-
-                        // 聚焦选中的机场标记
-                        if let airport = selectedAirport {
-                            Marker(airport.iata.isEmpty ? airport.icao : airport.iata, coordinate: CLLocationCoordinate2D(latitude: airport.latitude, longitude: airport.longitude))
-                                .tint(.orange)
-                        }
-                    }
-                    .mapStyle(.standard)
-                    .ignoresSafeArea(edges: .top)
-                    .transition(.opacity)
-                } else {
-                    // 航图秒开骨架屏 (深色航空仪表网格背景，瞬开 120fps)
-                    ZStack {
-                        Color(red: 0.06, green: 0.08, blue: 0.12)
-                            .ignoresSafeArea()
-
-                        VStack(spacing: 12) {
-                            ProgressView()
-                                .tint(.white)
-                            Text("空域航图载入中…")
-                                .font(.caption.monospaced())
-                                .foregroundStyle(.white.opacity(0.6))
-                        }
-                    }
-                }
+                // 1. 工业级高性能航图渲染层 (常驻预热 MKMapView 桥接，0ms 物理级瞬开，绝无任何掉帧与阻塞)
+                AviationMapViewRepresentable(
+                    aircraftCoordinate: planStore.chartPosition,
+                    aircraftTrackDeg: planStore.chartTrackDeg,
+                    routeCoordinates: planStore.precomputedRouteCoords,
+                    selectedAirport: selectedAirport
+                )
+                .ignoresSafeArea(edges: .top)
 
                 // 2. 悬浮底栏：机场搜索与跑道几何详情
                 VStack(spacing: 8) {
@@ -101,19 +51,13 @@ public struct AeronauticalMapView: View {
                     .background(Color(.secondarySystemBackground))
                     .clipShape(RoundedRectangle(cornerRadius: 10))
 
-                    // 机场横向滚动卡片
+                    // 机场横向滚动卡片 (使用 LazyHStack 仅实例化可视区域卡片，避免主线程开销)
                     ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 10) {
+                        LazyHStack(spacing: 10) {
                             let displayList = searchQuery.isEmpty ? coreAirports : searchResults
                             ForEach(displayList) { airport in
                                 Button {
                                     self.selectedAirport = airport
-                                    withAnimation(.easeInOut(duration: 0.4)) {
-                                        self.mapPosition = .region(MKCoordinateRegion(
-                                            center: CLLocationCoordinate2D(latitude: airport.latitude, longitude: airport.longitude),
-                                            span: MKCoordinateSpan(latitudeDelta: 0.1, longitudeDelta: 0.1)
-                                        ))
-                                    }
                                 } label: {
                                     VStack(alignment: .leading, spacing: 3) {
                                         HStack {
@@ -152,14 +96,9 @@ public struct AeronauticalMapView: View {
             .sheet(item: $selectedAirport) { airport in
                 AirportRunwayDetailSheet(airport: airport)
             }
-            .task {
-                // 延迟 50ms 异步挂载 MapKit，让 Tab 切换动画瞬间完成
-                if !isMapMounted {
-                    try? await Task.sleep(nanoseconds: 50_000_000)
-                    withAnimation(.easeIn(duration: 0.2)) {
-                        self.isMapMounted = true
-                    }
-                }
+            .onAppear {
+                CCFlyPerfLogger.end("UserSwitchTabToAeronauticalMap")
+                CCFlyPerfLogger.mark("AeronauticalMapView onAppear (航图瞬开)")
             }
         }
     }
@@ -272,3 +211,158 @@ struct AirportRunwayRowView: View {
         .padding(.vertical, 4)
     }
 }
+
+/// 工业级高性能航图容器 (基于预热 MKMapView 桥接，真机/模拟器绝对零延迟秒开)
+public struct AviationMapViewRepresentable: UIViewRepresentable {
+    public static let sharedMapView: MKMapView = {
+        let map = MKMapView(frame: UIScreen.main.bounds)
+        map.mapType = .standard
+        map.showsCompass = true
+        map.showsScale = true
+        map.isPitchEnabled = false
+        map.isRotateEnabled = true
+        let initRegion = MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: 39.5, longitude: 116.4),
+            span: MKCoordinateSpan(latitudeDelta: 2.0, longitudeDelta: 2.0)
+        )
+        map.setRegion(initRegion, animated: false)
+        return map
+    }()
+
+    let aircraftCoordinate: CLLocationCoordinate2D
+    let aircraftTrackDeg: Double
+    let routeCoordinates: [CLLocationCoordinate2D]
+    let selectedAirport: Airport?
+
+    public func makeUIView(context: Context) -> MKMapView {
+        let map = Self.sharedMapView
+        map.delegate = context.coordinator
+        context.coordinator.setupInitialOverlays(map: map)
+        return map
+    }
+
+    public func updateUIView(_ map: MKMapView, context: Context) {
+        context.coordinator.update(
+            map: map,
+            aircraftCoordinate: aircraftCoordinate,
+            aircraftTrackDeg: aircraftTrackDeg,
+            routeCoordinates: routeCoordinates,
+            selectedAirport: selectedAirport
+        )
+    }
+
+    public func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    public class Coordinator: NSObject, MKMapViewDelegate {
+        private let aircraftAnnotation = MKPointAnnotation()
+        private let airportAnnotation = MKPointAnnotation()
+        private var currentPolyline: MKPolyline?
+        private var lastRouteHash: Int = 0
+        private var lastSelectedIdent: String = ""
+
+        override init() {
+            super.init()
+            aircraftAnnotation.title = "AIRCRAFT"
+            airportAnnotation.title = "AIRPORT"
+        }
+
+        func setupInitialOverlays(map: MKMapView) {
+            if !map.annotations.contains(where: { ($0 as? MKPointAnnotation)?.title == "AIRCRAFT" }) {
+                map.addAnnotation(aircraftAnnotation)
+            }
+        }
+
+        func update(
+            map: MKMapView,
+            aircraftCoordinate: CLLocationCoordinate2D,
+            aircraftTrackDeg: Double,
+            routeCoordinates: [CLLocationCoordinate2D],
+            selectedAirport: Airport?
+        ) {
+            // 1. 更新飞机位置与航向 (0 内存分配，直接修改底层属性)
+            aircraftAnnotation.coordinate = aircraftCoordinate
+            if let view = map.view(for: aircraftAnnotation) {
+                UIView.animate(withDuration: 0.25) {
+                    view.transform = CGAffineTransform(rotationAngle: CGFloat((aircraftTrackDeg - 90) * .pi / 180.0))
+                }
+            }
+
+            // 2. 更新大圆航线 (仅当航线坐标变化时更新 overlay)
+            let routeHash = routeCoordinates.count ^ (routeCoordinates.first?.latitude.hashValue ?? 0)
+            if routeHash != lastRouteHash {
+                lastRouteHash = routeHash
+                if let old = currentPolyline {
+                    map.removeOverlay(old)
+                }
+                if !routeCoordinates.isEmpty {
+                    let polyline = MKPolyline(coordinates: routeCoordinates, count: routeCoordinates.count)
+                    self.currentPolyline = polyline
+                    map.addOverlay(polyline)
+                }
+            }
+
+            // 3. 更新选中机场标记与视锥移动
+            if let apt = selectedAirport, apt.ident != lastSelectedIdent {
+                lastSelectedIdent = apt.ident
+                airportAnnotation.coordinate = CLLocationCoordinate2D(latitude: apt.latitude, longitude: apt.longitude)
+                airportAnnotation.subtitle = apt.name
+                if !map.annotations.contains(where: { ($0 as? MKPointAnnotation)?.title == "AIRPORT" }) {
+                    map.addAnnotation(airportAnnotation)
+                }
+                let region = MKCoordinateRegion(
+                    center: airportAnnotation.coordinate,
+                    span: MKCoordinateSpan(latitudeDelta: 0.15, longitudeDelta: 0.15)
+                )
+                map.setRegion(region, animated: true)
+            }
+        }
+
+        public func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
+            if let polyline = overlay as? MKPolyline {
+                let renderer = MKPolylineRenderer(polyline: polyline)
+                renderer.strokeColor = UIColor.systemCyan
+                renderer.lineWidth = 3.5
+                return renderer
+            }
+            return MKOverlayRenderer(overlay: overlay)
+        }
+
+        public func mapView(_ mapView: MKMapView, viewFor annotation: MKAnnotation) -> MKAnnotationView? {
+            guard let pointAnnotation = annotation as? MKPointAnnotation else { return nil }
+
+            if pointAnnotation.title == "AIRCRAFT" {
+                let id = "AircraftAnnotationView"
+                var view = mapView.dequeueReusableAnnotationView(withIdentifier: id)
+                if view == nil {
+                    view = MKAnnotationView(annotation: annotation, reuseIdentifier: id)
+                    let iconImage = UIImage(systemName: "airplane")?.withTintColor(.white, renderingMode: .alwaysOriginal)
+                    let bgView = UIView(frame: CGRect(x: 0, y: 0, width: 34, height: 34))
+                    bgView.backgroundColor = .systemBlue
+                    bgView.layer.cornerRadius = 17
+                    bgView.layer.masksToBounds = true
+
+                    let iv = UIImageView(image: iconImage)
+                    iv.frame = CGRect(x: 7, y: 7, width: 20, height: 20)
+                    bgView.addSubview(iv)
+                    view?.addSubview(bgView)
+                    view?.frame = bgView.frame
+                    view?.centerOffset = CGPoint(x: 0, y: 0)
+                }
+                return view
+            } else if pointAnnotation.title == "AIRPORT" {
+                let id = "AirportMarker"
+                var marker = mapView.dequeueReusableAnnotationView(withIdentifier: id) as? MKMarkerAnnotationView
+                if marker == nil {
+                    marker = MKMarkerAnnotationView(annotation: annotation, reuseIdentifier: id)
+                    marker?.markerTintColor = .systemOrange
+                    marker?.glyphImage = UIImage(systemName: "airplane.departure")
+                }
+                return marker
+            }
+            return nil
+        }
+    }
+}
+

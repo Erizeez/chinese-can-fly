@@ -15,6 +15,7 @@
 		892819A72A12CB03AF357751 /* FlightPlanStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19106EA799670D14B507FEB0 /* FlightPlanStore.swift */; };
 		B990F54D9218E826E0975053 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A900CD71A8BE0FC43F21356 /* SettingsView.swift */; };
 		D5F238C6A9F239A6CA7A5940 /* CCFlyCore in Frameworks */ = {isa = PBXBuildFile; productRef = F7C5BFC3055A537F3BC41971 /* CCFlyCore */; };
+		DDB68B93F6BE73D6EE9163B5 /* CCFlyPerfLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED4C92AD06202436CE79205A /* CCFlyPerfLogger.swift */; };
 		E744587ABDF47CCC60D86475 /* PrimaryFlightDisplayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40B3792CA9351BE25F1E1115 /* PrimaryFlightDisplayView.swift */; };
 		F0AF26B62674BAE41907A2A0 /* OfflineResourcesManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8DFBEC409260C18FAB0DDBB /* OfflineResourcesManagementView.swift */; };
 		F979021A4CDB483EDAF1E0CC /* ChineseCanFlyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E361BFBBD93BE3D3B589088B /* ChineseCanFlyApp.swift */; };
@@ -34,6 +35,7 @@
 		C8DFBEC409260C18FAB0DDBB /* OfflineResourcesManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineResourcesManagementView.swift; sourceTree = "<group>"; };
 		D92AF95EFE0298D67FF2A780 /* FlightDataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightDataManager.swift; sourceTree = "<group>"; };
 		E361BFBBD93BE3D3B589088B /* ChineseCanFlyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChineseCanFlyApp.swift; sourceTree = "<group>"; };
+		ED4C92AD06202436CE79205A /* CCFlyPerfLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CCFlyPerfLogger.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -101,6 +103,7 @@
 		D042348760A20F6FEEFA3CD2 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				ED4C92AD06202436CE79205A /* CCFlyPerfLogger.swift */,
 				D92AF95EFE0298D67FF2A780 /* FlightDataManager.swift */,
 				19106EA799670D14B507FEB0 /* FlightPlanStore.swift */,
 			);
@@ -188,6 +191,7 @@
 			files = (
 				077E626FB9ED9E446B5E87F3 /* AeronauticalMapView.swift in Sources */,
 				513DED83B19B9537F8CBF724 /* AvionicsTelemetryView.swift in Sources */,
+				DDB68B93F6BE73D6EE9163B5 /* CCFlyPerfLogger.swift in Sources */,
 				F979021A4CDB483EDAF1E0CC /* ChineseCanFlyApp.swift in Sources */,
 				434C2E4956FF4360D9FD1AFB /* FlightDataManager.swift in Sources */,
 				2B4D876210127472BCC887A4 /* FlightDataView.swift in Sources */,
