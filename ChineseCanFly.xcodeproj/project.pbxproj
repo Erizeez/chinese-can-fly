@@ -11,6 +11,7 @@
 		434C2E4956FF4360D9FD1AFB /* FlightDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D92AF95EFE0298D67FF2A780 /* FlightDataManager.swift */; };
 		513DED83B19B9537F8CBF724 /* AvionicsTelemetryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2657524D06DF5DA18EF930D1 /* AvionicsTelemetryView.swift */; };
 		5606CB0CA5C6CDE0CA624302 /* OfflineMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4115493844D381F53D8B18B5 /* OfflineMapView.swift */; };
+		892819A72A12CB03AF357751 /* FlightPlanStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19106EA799670D14B507FEB0 /* FlightPlanStore.swift */; };
 		B990F54D9218E826E0975053 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A900CD71A8BE0FC43F21356 /* SettingsView.swift */; };
 		D5F238C6A9F239A6CA7A5940 /* CCFlyCore in Frameworks */ = {isa = PBXBuildFile; productRef = F7C5BFC3055A537F3BC41971 /* CCFlyCore */; };
 		E744587ABDF47CCC60D86475 /* PrimaryFlightDisplayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40B3792CA9351BE25F1E1115 /* PrimaryFlightDisplayView.swift */; };
@@ -18,6 +19,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		19106EA799670D14B507FEB0 /* FlightPlanStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightPlanStore.swift; sourceTree = "<group>"; };
 		1C6084A9446081E50AEB069E /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 		2657524D06DF5DA18EF930D1 /* AvionicsTelemetryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvionicsTelemetryView.swift; sourceTree = "<group>"; };
 		334321BE32649839F4DFF8C7 /* CCFlyCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = CCFlyCore; path = CCFlyCore; sourceTree = SOURCE_ROOT; };
@@ -94,6 +96,7 @@
 			isa = PBXGroup;
 			children = (
 				D92AF95EFE0298D67FF2A780 /* FlightDataManager.swift */,
+				19106EA799670D14B507FEB0 /* FlightPlanStore.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -181,6 +184,7 @@
 				F979021A4CDB483EDAF1E0CC /* ChineseCanFlyApp.swift in Sources */,
 				434C2E4956FF4360D9FD1AFB /* FlightDataManager.swift in Sources */,
 				2B4D876210127472BCC887A4 /* FlightDataView.swift in Sources */,
+				892819A72A12CB03AF357751 /* FlightPlanStore.swift in Sources */,
 				5606CB0CA5C6CDE0CA624302 /* OfflineMapView.swift in Sources */,
 				E744587ABDF47CCC60D86475 /* PrimaryFlightDisplayView.swift in Sources */,
 				B990F54D9218E826E0975053 /* SettingsView.swift in Sources */,

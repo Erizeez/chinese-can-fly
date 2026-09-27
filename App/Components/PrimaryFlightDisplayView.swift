@@ -169,8 +169,6 @@ public struct PrimaryFlightDisplayView: View {
         )
         // 开启 Metal 硬件合成加速，直接调用 Metal 纹理渲染，零掉帧、零卡顿！
         .drawingGroup()
-        .animation(.smooth(duration: 0.1), value: pitch)
-        .animation(.smooth(duration: 0.1), value: roll)
     }
 }
 

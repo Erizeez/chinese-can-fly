@@ -12,8 +12,14 @@ public final class FlightDataManager: @unchecked Sendable {
     public static let shared = FlightDataManager()
 
     // MARK: - 核心态势变量 (真实硬件传感器驱动)
-    public var currentFlight: FlightPlan?
-    public var activeFlightState: AirborneState?
+    public var currentFlight: FlightPlan? {
+        get { FlightPlanStore.shared.currentFlight }
+        set { FlightPlanStore.shared.currentFlight = newValue }
+    }
+    public var activeFlightState: AirborneState? {
+        get { FlightPlanStore.shared.activeFlightState }
+        set { FlightPlanStore.shared.activeFlightState = newValue }
+    }
     public var isRecording: Bool = false
 
     // 空间定位与地速
@@ -55,13 +61,17 @@ public final class FlightDataManager: @unchecked Sendable {
     private var lastRawAcceleration: simd_double3 = .zero
     private var lastRecordedTick: Date = Date.distantPast
 
+    // 节流与丢帧保护：锁定最大 30fps 派发主线程，彻底消除 UI 线程饥饿
+    private var lastMotionDispatchTime: Double = 0
+    private var isMotionDispatchPending: Bool = false
+    private var filteredPitch: Double = 0.0
+    private var filteredRoll: Double = 0.0
+
     private init() {
-        // 默认载入干线代表航班
-        self.currentFlight = OfflineFlightDatabase.shared.lookupFlight(callsign: "CA1501")
         setupSensorCallbacks()
-        // 延迟 0.1 秒平滑激活传感器，确保 SwiftUI 首屏在 0.01 秒内瞬间呈现
+        // 延迟 0.15 秒平滑激活传感器，确保 SwiftUI 首屏在 0.01 秒内瞬间呈现
         Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 100_000_000)
+            try? await Task.sleep(nanoseconds: 150_000_000)
             BackgroundFlightTracker.shared.startLiveSensors()
         }
     }
@@ -70,7 +80,7 @@ public final class FlightDataManager: @unchecked Sendable {
         let tracker = BackgroundFlightTracker.shared
 
         tracker.onLocationUpdate = { [weak self] location, phase in
-            Task { @MainActor in
+            DispatchQueue.main.async {
                 guard let self = self else { return }
                 self.latitude = location.coordinate.latitude
                 self.longitude = location.coordinate.longitude
@@ -89,48 +99,71 @@ public final class FlightDataManager: @unchecked Sendable {
         }
 
         tracker.onMotionUpdate = { [weak self] acc, grav, pitch, roll, yaw in
-            Task { @MainActor in
+            guard let self = self else { return }
+            self.lastRawAcceleration = acc
+            self.lastRawGravity = grav
+
+            let targetPitch: Double
+            let targetRoll: Double
+            let computedNz: Double
+            let computedNx: Double
+            let computedNy: Double
+
+            // 1. 在后台线程完成坐标系正交变换与过载计算
+            if self.bodyAligner.calibrated {
+                let (p, r) = self.bodyAligner.calculateAttitudeAngles(sensorGravity: grav)
+                targetPitch = p
+                targetRoll = r
+                let (nx, ny, nz) = self.bodyAligner.transformAcceleration(sensorAcc: acc + grav)
+                computedNz = nz
+                computedNx = nx
+                computedNy = ny
+            } else {
+                targetPitch = pitch
+                targetRoll = roll
+                computedNz = sqrt(grav.x * grav.x + grav.y * grav.y + grav.z * grav.z) / 9.80665
+                computedNx = acc.z / 9.80665
+                computedNy = acc.x / 9.80665
+            }
+
+            // 姿态一阶平滑低通滤波 (alpha = 0.35)
+            let alpha = 0.35
+            self.filteredPitch = (alpha * targetPitch) + ((1.0 - alpha) * self.filteredPitch)
+            self.filteredRoll = (alpha * targetRoll) + ((1.0 - alpha) * self.filteredRoll)
+
+            self.dynamicsAnalyzer.processSample(normalG: computedNz, sinkRateFpm: -self.cabinVSIFpm)
+            let computedEDR = self.dynamicsAnalyzer.calculateTurbulenceEDR()
+
+            let curPitch = self.filteredPitch
+            let curRoll = self.filteredRoll
+
+            // 2. 检查 30Hz 节流与主线程拥塞状态
+            let nowMedia = CACurrentMediaTime()
+            guard nowMedia - self.lastMotionDispatchTime >= 0.033 else { return }
+            guard !self.isMotionDispatchPending else { return } // 前一帧若未消费直接丢弃，杜绝阻塞主线程
+            self.isMotionDispatchPending = true
+            self.lastMotionDispatchTime = nowMedia
+
+            DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
-                self.lastRawAcceleration = acc
-                self.lastRawGravity = grav
+                self.isMotionDispatchPending = false
 
-                let targetPitch: Double
-                let targetRoll: Double
-
-                // 如果已对准，则使用机体变换后的俯仰滚转与过载；未对准时直接使用自然姿态
-                if self.bodyAligner.calibrated {
-                    let (p, r) = self.bodyAligner.calculateAttitudeAngles(sensorGravity: grav)
-                    targetPitch = p
-                    targetRoll = r
-                    let (nx, ny, nz) = self.bodyAligner.transformAcceleration(sensorAcc: acc + grav)
-                    self.normalGForce = nz
-                    self.longitudinalGForce = nx
-                    self.lateralGForce = ny
-                } else {
-                    targetPitch = pitch
-                    targetRoll = roll
-                    self.normalGForce = sqrt(grav.x * grav.x + grav.y * grav.y + grav.z * grav.z) / 9.80665
-                    self.longitudinalGForce = acc.z / 9.80665
-                    self.lateralGForce = acc.x / 9.80665
-                }
-
-                // 姿态一阶平滑低通滤波，消除传感器微颤与视觉卡顿，模拟真实航空仪表的沉稳顺滑
-                let alpha = 0.35
-                self.pitchDeg = (alpha * targetPitch) + ((1.0 - alpha) * self.pitchDeg)
-                self.rollDeg = (alpha * targetRoll) + ((1.0 - alpha) * self.rollDeg)
-
-                self.dynamicsAnalyzer.processSample(normalG: self.normalGForce, sinkRateFpm: -self.cabinVSIFpm)
-                self.turbulenceEDR = self.dynamicsAnalyzer.calculateTurbulenceEDR()
+                self.pitchDeg = curPitch
+                self.rollDeg = curRoll
+                self.normalGForce = computedNz
+                self.longitudinalGForce = computedNx
+                self.lateralGForce = computedNy
+                self.turbulenceEDR = computedEDR
 
                 // 检测是否刚刚发生着陆接地冲击
                 if self.flightPhase == .touchdown && self.latestTouchdown == nil {
                     self.latestTouchdown = self.dynamicsAnalyzer.evaluateTouchdown(
-                        peakNormalG: self.normalGForce,
+                        peakNormalG: computedNz,
                         touchdownSinkRateFpm: -self.cabinVSIFpm
                     )
                 }
 
-                // 黑匣子时序图表严格按 1Hz 节流写入，杜绝高频刷新导致 Swift Charts 卡死主线程
+                // 黑匣子时序图表严格按 1Hz 节流写入
                 let now = Date()
                 if self.isRecording && now.timeIntervalSince(self.lastRecordedTick) >= 1.0 {
                     self.lastRecordedTick = now
@@ -140,10 +173,12 @@ public final class FlightDataManager: @unchecked Sendable {
         }
 
         tracker.onPressureUpdate = { [weak self] pressureHPa in
-            Task { @MainActor in
+            guard let self = self else { return }
+            let (cabinAlt, vsi) = self.cabinAnalyzer.update(pressureHPa: pressureHPa)
+
+            DispatchQueue.main.async { [weak self] in
                 guard let self = self else { return }
                 self.ambientPressureHPa = pressureHPa
-                let (cabinAlt, vsi) = self.cabinAnalyzer.update(pressureHPa: pressureHPa)
                 self.cabinAltitudeFt = cabinAlt
                 self.cabinVSIFpm = vsi
             }

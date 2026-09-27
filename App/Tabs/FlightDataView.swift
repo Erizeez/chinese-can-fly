@@ -1,13 +1,10 @@
 import SwiftUI
 import CCFlyCore
 
-/// 航班数据 Tab 页面 (完全数据驱动与多源检索)
+/// 航班数据 Tab 页面 (纯数据驱动，完全解耦高频传感器，保证搜索输入丝滑零卡顿)
 public struct FlightDataView: View {
-    @State private var dataManager = FlightDataManager.shared
+    @State private var planStore = FlightPlanStore.shared
     @State private var callsignInput: String = "CA1501"
-    @State private var isSearchingOnline: Bool = false
-    @State private var onlineResult: AirborneState? = nil
-    @State private var onlineErrorMessage: String? = nil
     @State private var showWaypointsSheet: Bool = false
 
     // 推荐快速切换的经典干线与国产大飞机 C919 航班
@@ -28,9 +25,23 @@ public struct FlightDataView: View {
                         HStack {
                             Image(systemName: "magnifyingglass")
                                 .foregroundStyle(.blue)
+                            
                             TextField("输入航班号 (如 CA1501, MU9191)", text: $callsignInput)
                                 .textInputAutocapitalization(.characters)
                                 .autocorrectionDisabled()
+                                .submitLabel(.search)
+                                .onSubmit {
+                                    performOfflineLookup()
+                                }
+                            
+                            if !callsignInput.isEmpty {
+                                Button {
+                                    callsignInput = ""
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
                             
                             Button("查询") {
                                 performOfflineLookup()
@@ -64,7 +75,7 @@ public struct FlightDataView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 14))
 
                     // 2. 当前选中航班真实计划卡片
-                    if let flight = dataManager.currentFlight {
+                    if let flight = planStore.currentFlight {
                         VStack(spacing: 14) {
                             HStack {
                                 VStack(alignment: .leading, spacing: 4) {
@@ -93,7 +104,7 @@ public struct FlightDataView: View {
                                     Text(flight.departureICAO)
                                         .font(.caption.monospaced())
                                         .foregroundStyle(.secondary)
-                                    Text(getAirportCity(iata: flight.departureIATA))
+                                    Text(planStore.getCityName(iata: flight.departureIATA))
                                         .font(.footnote)
                                 }
                                 Spacer()
@@ -112,7 +123,7 @@ public struct FlightDataView: View {
                                     Text(flight.arrivalICAO)
                                         .font(.caption.monospaced())
                                         .foregroundStyle(.secondary)
-                                    Text(getAirportCity(iata: flight.arrivalIATA))
+                                    Text(planStore.getCityName(iata: flight.arrivalIATA))
                                         .font(.footnote)
                                 }
                             }
@@ -139,9 +150,9 @@ public struct FlightDataView: View {
                                 .font(.headline)
                             Spacer()
                             Button {
-                                fetchOnlineState()
+                                planStore.fetchOnlineState()
                             } label: {
-                                if isSearchingOnline {
+                                if planStore.isSearchingOnline {
                                     ProgressView()
                                         .scaleEffect(0.8)
                                 } else {
@@ -152,7 +163,7 @@ public struct FlightDataView: View {
                             .buttonStyle(.bordered)
                         }
 
-                        if let online = onlineResult {
+                        if let online = planStore.activeFlightState {
                             VStack(alignment: .leading, spacing: 6) {
                                 HStack {
                                     Text("空中呼号: \(online.callsign)")
@@ -177,7 +188,7 @@ public struct FlightDataView: View {
                             .padding(10)
                             .background(Color(.secondarySystemBackground))
                             .clipShape(RoundedRectangle(cornerRadius: 10))
-                        } else if let error = onlineErrorMessage {
+                        } else if let error = planStore.onlineErrorMessage {
                             Text(error)
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
@@ -196,7 +207,7 @@ public struct FlightDataView: View {
             .navigationTitle("航班数据")
             .background(Color(.systemGroupedBackground))
             .sheet(isPresented: $showWaypointsSheet) {
-                if let flight = dataManager.currentFlight {
+                if let flight = planStore.currentFlight {
                     WaypointsDetailSheet(flight: flight)
                 }
             }
@@ -204,43 +215,7 @@ public struct FlightDataView: View {
     }
 
     private func performOfflineLookup() {
-        if let found = OfflineFlightDatabase.shared.lookupFlight(callsign: callsignInput) {
-            dataManager.currentFlight = found
-            onlineResult = nil
-            onlineErrorMessage = nil
-        } else {
-            onlineErrorMessage = "离线库暂未收录 \(callsignInput)，可通过搜索添加或在线刷新。"
-        }
-    }
-
-    private func fetchOnlineState() {
-        guard let flight = dataManager.currentFlight else { return }
-        isSearchingOnline = true
-        onlineErrorMessage = nil
-
-        Task {
-            do {
-                let state = try await OpenSkyClient.shared.fetchFlightState(callsign: flight.callsign)
-                await MainActor.run {
-                    self.isSearchingOnline = false
-                    if let state = state {
-                        self.onlineResult = state
-                        self.dataManager.activeFlightState = state
-                    } else {
-                        self.onlineErrorMessage = "当前 OpenSky 开放网络暂未捕获到呼号为 \(flight.callsign) 的实时信号 (可能未在空中起飞或处于雷达盲区)。"
-                    }
-                }
-            } catch {
-                await MainActor.run {
-                    self.isSearchingOnline = false
-                    self.onlineErrorMessage = "连接 OpenSky API 失败: \(error.localizedDescription)"
-                }
-            }
-        }
-    }
-
-    private func getAirportCity(iata: String) -> String {
-        return AirportRepository.shared.findAirport(code: iata)?.name ?? iata
+        _ = planStore.selectFlight(callsign: callsignInput)
     }
 }
 

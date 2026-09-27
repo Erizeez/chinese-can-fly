@@ -14,6 +14,13 @@ public final class BackgroundFlightTracker: NSObject, CLLocationManagerDelegate,
     #if os(iOS)
     private let motionManager = CMMotionManager()
     private let altimeter = CMAltimeter()
+    private let sensorQueue: OperationQueue = {
+        let q = OperationQueue()
+        q.name = "com.erizeez.CCFly.sensorQueue"
+        q.qualityOfService = .userInteractive
+        q.maxConcurrentOperationCount = 1
+        return q
+    }()
     #endif
 
     public private(set) var isTracking: Bool = false
@@ -95,14 +102,14 @@ public final class BackgroundFlightTracker: NSObject, CLLocationManagerDelegate,
 
         if motionManager.isDeviceMotionAvailable {
             motionManager.deviceMotionUpdateInterval = 1.0 / sampleRateHz
-            motionManager.startDeviceMotionUpdates(to: .main) { [weak self] motion, error in
+            motionManager.startDeviceMotionUpdates(to: sensorQueue) { [weak self] motion, error in
                 guard let motion = motion, let self = self else { return }
                 self.handleMotionSample(motion)
             }
         }
 
         if CMAltimeter.isRelativeAltitudeAvailable() {
-            altimeter.startRelativeAltitudeUpdates(to: .main) { [weak self] data, error in
+            altimeter.startRelativeAltitudeUpdates(to: sensorQueue) { [weak self] data, error in
                 guard let data = data, let self = self else { return }
                 self.handlePressureSample(pressureKPa: data.pressure.doubleValue)
             }
