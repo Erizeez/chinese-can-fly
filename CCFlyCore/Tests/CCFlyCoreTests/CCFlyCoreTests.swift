@@ -43,24 +43,16 @@ final class CCFlyCoreTests: XCTestCase {
         XCTAssertTrue(hardReport.rating.contains("重着陆"))
     }
 
-    func testOfflineFlightDatabaseAndMU6594() {
+    func testOfflineFlightDatabaseAndDataProvider() async throws {
+        let provider = FlightDataProvider.shared
         let db = OfflineFlightDatabase.shared
         
-        // 1. 验证 MU6594 航班收录检索
-        let flight = db.lookupFlight(callsign: "MU6594")
-        XCTAssertNotNil(flight, "应当能够检索到 MU6594 航班")
-        XCTAssertEqual(flight?.airline, "中国东方航空")
-        XCTAssertEqual(flight?.departureIATA, "SQJ")
-        XCTAssertEqual(flight?.arrivalIATA, "SHA")
-        XCTAssertEqual(flight?.aircraftModel, "Boeing 737-800")
-        XCTAssertGreaterThan(flight?.distanceNM ?? 0, 200)
-
-        // 2. 验证智能航司推断
+        // 1. 验证智能航司推断 (无网络无离线包亦可用)
         XCTAssertEqual(OfflineFlightDatabase.detectAirline(callsign: "MU6594"), "中国东方航空")
         XCTAssertEqual(OfflineFlightDatabase.detectAirline(callsign: "CA1501"), "中国国际航空")
         XCTAssertEqual(OfflineFlightDatabase.detectAirline(callsign: "CZ3101"), "中国南方航空")
 
-        // 3. 验证用户自定义航班持久化
+        // 2. 验证用户自定义录入航线 (无需下载离线包，优先即时命中)
         db.saveCustomFlight(
             callsign: "TEST999",
             airline: "测试虚拟航空",
@@ -69,11 +61,54 @@ final class CCFlyCoreTests: XCTestCase {
             model: "C919",
             alt: 35000
         )
-        let customFlight = db.lookupFlight(callsign: "TEST999")
-        XCTAssertNotNil(customFlight)
-        XCTAssertEqual(customFlight?.airline, "测试虚拟航空")
-        XCTAssertEqual(customFlight?.departureIATA, "PEK")
-        XCTAssertEqual(customFlight?.arrivalIATA, "SHA")
+        let customLookup = provider.lookupOffline(callsign: "TEST999")
+        if case let .success(flight, source, _) = customLookup {
+            XCTAssertEqual(source, .userCustom)
+            XCTAssertEqual(flight.callsign, "TEST999")
+            XCTAssertEqual(flight.departureIATA, "PEK")
+        } else {
+            XCTFail("用户自定义录入航班应可离线直接命中")
+        }
+
+        // 3. 验证未安装离线包时，查询国内未收录航班返回 offlineNotInstalled 并提供航司推断
+        // 先确保离线包未安装 (清除可能残留的包)
+        try? OfflineResourceManager.shared.deletePackage(packageId: "db_flight_routes")
+        db.reloadOfflineRoutesFromDisk()
+        XCTAssertFalse(db.isOfflinePackageInstalled, "初始状态下离线航线包不应被强行安装")
+        
+        let beforeInstallLookup = provider.lookupOffline(callsign: "MU6594")
+        if case let .offlineNotInstalled(callsign, suggested) = beforeInstallLookup {
+            XCTAssertEqual(callsign, "MU6594")
+            XCTAssertEqual(suggested, "中国东方航空")
+        } else {
+            XCTFail("未安装离线包时应当返回 offlineNotInstalled 提示")
+        }
+
+        // 4. 验证按需下载离线包并成功检索 MU6594
+        try await provider.installRoutesPackage()
+        XCTAssertTrue(db.isOfflinePackageInstalled, "安装离线包后应当标记为已安装")
+        
+        let afterInstallLookup = provider.lookupOffline(callsign: "MU6594")
+        if case let .success(flight, source, _) = afterInstallLookup {
+            XCTAssertEqual(source, .offlinePackage)
+            XCTAssertEqual(flight.airline, "中国东方航空")
+            XCTAssertEqual(flight.departureIATA, "SQJ")
+            XCTAssertEqual(flight.arrivalIATA, "SHA")
+            XCTAssertEqual(flight.aircraftModel, "Boeing 737-800")
+            XCTAssertGreaterThan(flight.distanceNM, 200)
+        } else {
+            XCTFail("安装离线包后应当能够直接检索到 MU6594 航班")
+        }
+
+        // 5. 验证已安装离线包但查询不存在的未知航班号时，返回 notFoundInOffline
+        let notFoundLookup = provider.lookupOffline(callsign: "HU999999")
+        if case let .notFoundInOffline(callsign, suggested) = notFoundLookup {
+            XCTAssertEqual(callsign, "HU999999")
+            XCTAssertEqual(suggested, "海南航空")
+        } else {
+            XCTFail("离线库中未收录的航班应返回 notFoundInOffline")
+        }
     }
 }
+
 

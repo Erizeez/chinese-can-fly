@@ -1,0 +1,370 @@
+[
+  {
+    "callsign": "MU6594",
+    "airline": "中国东方航空",
+    "departureIATA": "SQJ",
+    "arrivalIATA": "SHA",
+    "aircraftModel": "Boeing 737-800",
+    "plannedCruiseAltitudeFt": 28000.0
+  },
+  {
+    "callsign": "MU6593",
+    "airline": "中国东方航空",
+    "departureIATA": "SHA",
+    "arrivalIATA": "SQJ",
+    "aircraftModel": "Boeing 737-800",
+    "plannedCruiseAltitudeFt": 27000.0
+  },
+  {
+    "callsign": "CA1501",
+    "airline": "中国国际航空",
+    "departureIATA": "PEK",
+    "arrivalIATA": "SHA",
+    "aircraftModel": "Airbus A350-900",
+    "plannedCruiseAltitudeFt": 35000.0
+  },
+  {
+    "callsign": "CA1502",
+    "airline": "中国国际航空",
+    "departureIATA": "SHA",
+    "arrivalIATA": "PEK",
+    "aircraftModel": "Airbus A350-900",
+    "plannedCruiseAltitudeFt": 36000.0
+  },
+  {
+    "callsign": "CA1831",
+    "airline": "中国国际航空",
+    "departureIATA": "PEK",
+    "arrivalIATA": "CAN",
+    "aircraftModel": "Boeing 777-300ER",
+    "plannedCruiseAltitudeFt": 38000.0
+  },
+  {
+    "callsign": "CA1301",
+    "airline": "中国国际航空",
+    "departureIATA": "PEK",
+    "arrivalIATA": "CAN",
+    "aircraftModel": "Airbus A330-300",
+    "plannedCruiseAltitudeFt": 36000.0
+  },
+  {
+    "callsign": "CA4101",
+    "airline": "中国国际航空",
+    "departureIATA": "PEK",
+    "arrivalIATA": "CTU",
+    "aircraftModel": "Boeing 787-9",
+    "plannedCruiseAltitudeFt": 37000.0
+  },
+  {
+    "callsign": "CA1405",
+    "airline": "中国国际航空",
+    "departureIATA": "PEK",
+    "arrivalIATA": "CKG",
+    "aircraftModel": "Boeing 737-800",
+    "plannedCruiseAltitudeFt": 34000.0
+  },
+  {
+    "callsign": "CA1507",
+    "airline": "中国国际航空 (C919首飞)",
+    "departureIATA": "PEK",
+    "arrivalIATA": "SHA",
+    "aircraftModel": "COMAC C919",
+    "plannedCruiseAltitudeFt": 33000.0
+  },
+  {
+    "callsign": "CA1508",
+    "airline": "中国国际航空 (C919首飞)",
+    "departureIATA": "SHA",
+    "arrivalIATA": "PEK",
+    "aircraftModel": "COMAC C919",
+    "plannedCruiseAltitudeFt": 34000.0
+  },
+  {
+    "callsign": "CA1701",
+    "airline": "中国国际航空",
+    "departureIATA": "PEK",
+    "arrivalIATA": "HGH",
+    "aircraftModel": "Airbus A330-300",
+    "plannedCruiseAltitudeFt": 35000.0
+  },
+  {
+    "callsign": "MU5101",
+    "airline": "中国东方航空",
+    "departureIATA": "SHA",
+    "arrivalIATA": "PEK",
+    "aircraftModel": "Boeing 777-300ER",
+    "plannedCruiseAltitudeFt": 36000.0
+  },
+  {
+    "callsign": "MU5102",
+    "airline": "中国东方航空",
+    "departureIATA": "PEK",
+    "arrivalIATA": "SHA",
+    "aircraftModel": "Airbus A350-900",
+    "plannedCruiseAltitudeFt": 35000.0
+  },
+  {
+    "callsign": "MU5183",
+    "airline": "中国东方航空",
+    "departureIATA": "PVG",
+    "arrivalIATA": "CAN",
+    "aircraftModel": "Airbus A330-200",
+    "plannedCruiseAltitudeFt": 34000.0
+  },
+  {
+    "callsign": "MU5301",
+    "airline": "中国东方航空",
+    "departureIATA": "SHA",
+    "arrivalIATA": "CAN",
+    "aircraftModel": "Airbus A320neo",
+    "plannedCruiseAltitudeFt": 33000.0
+  },
+  {
+    "callsign": "MU9191",
+    "airline": "中国东方航空 (C919全球商业首航)",
+    "departureIATA": "SHA",
+    "arrivalIATA": "PEK",
+    "aircraftModel": "COMAC C919",
+    "plannedCruiseAltitudeFt": 35000.0
+  },
+  {
+    "callsign": "MU9192",
+    "airline": "中国东方航空 (C919全球商业首航)",
+    "departureIATA": "PEK",
+    "arrivalIATA": "SHA",
+    "aircraftModel": "COMAC C919",
+    "plannedCruiseAltitudeFt": 36000.0
+  },
+  {
+    "callsign": "MU9197",
+    "airline": "中国东方航空 (C919商业航线)",
+    "departureIATA": "SHA",
+    "arrivalIATA": "TFU",
+    "aircraftModel": "COMAC C919",
+    "plannedCruiseAltitudeFt": 34000.0
+  },
+  {
+    "callsign": "MU9198",
+    "airline": "中国东方航空 (C919商业航线)",
+    "departureIATA": "TFU",
+    "arrivalIATA": "SHA",
+    "aircraftModel": "COMAC C919",
+    "plannedCruiseAltitudeFt": 35000.0
+  },
+  {
+    "callsign": "MU5311",
+    "airline": "中国东方航空",
+    "departureIATA": "SHA",
+    "arrivalIATA": "SZX",
+    "aircraftModel": "Airbus A330-300",
+    "plannedCruiseAltitudeFt": 34000.0
+  },
+  {
+    "callsign": "MU5401",
+    "airline": "中国东方航空",
+    "departureIATA": "SHA",
+    "arrivalIATA": "CKG",
+    "aircraftModel": "Airbus A321neo",
+    "plannedCruiseAltitudeFt": 32000.0
+  },
+  {
+    "callsign": "MU5701",
+    "airline": "中国东方航空",
+    "departureIATA": "SHA",
+    "arrivalIATA": "KMG",
+    "aircraftModel": "Boeing 737-800",
+    "plannedCruiseAltitudeFt": 31000.0
+  },
+  {
+    "callsign": "MU2151",
+    "airline": "中国东方航空",
+    "departureIATA": "SHA",
+    "arrivalIATA": "XIY",
+    "aircraftModel": "Airbus A320",
+    "plannedCruiseAltitudeFt": 30000.0
+  },
+  {
+    "callsign": "CZ3101",
+    "airline": "中国南方航空",
+    "departureIATA": "CAN",
+    "arrivalIATA": "PEK",
+    "aircraftModel": "Airbus A350-900",
+    "plannedCruiseAltitudeFt": 37000.0
+  },
+  {
+    "callsign": "CZ3102",
+    "airline": "中国南方航空",
+    "departureIATA": "PEK",
+    "arrivalIATA": "CAN",
+    "aircraftModel": "Airbus A350-900",
+    "plannedCruiseAltitudeFt": 38000.0
+  },
+  {
+    "callsign": "CZ3002",
+    "airline": "中国南方航空",
+    "departureIATA": "PKX",
+    "arrivalIATA": "CAN",
+    "aircraftModel": "Boeing 787-8",
+    "plannedCruiseAltitudeFt": 36000.0
+  },
+  {
+    "callsign": "CZ3523",
+    "airline": "中国南方航空",
+    "departureIATA": "CAN",
+    "arrivalIATA": "SHA",
+    "aircraftModel": "Boeing 787-9",
+    "plannedCruiseAltitudeFt": 35000.0
+  },
+  {
+    "callsign": "CZ3907",
+    "airline": "中国南方航空",
+    "departureIATA": "CAN",
+    "arrivalIATA": "CTU",
+    "aircraftModel": "Airbus A330-300",
+    "plannedCruiseAltitudeFt": 34000.0
+  },
+  {
+    "callsign": "CZ3401",
+    "airline": "中国南方航空",
+    "departureIATA": "CAN",
+    "arrivalIATA": "WUH",
+    "aircraftModel": "Boeing 737-800",
+    "plannedCruiseAltitudeFt": 32000.0
+  },
+  {
+    "callsign": "CZ3539",
+    "airline": "中国南方航空 (C919首飞)",
+    "departureIATA": "CAN",
+    "arrivalIATA": "SHA",
+    "aircraftModel": "COMAC C919",
+    "plannedCruiseAltitudeFt": 33000.0
+  },
+  {
+    "callsign": "CZ3540",
+    "airline": "中国南方航空 (C919首飞)",
+    "departureIATA": "SHA",
+    "arrivalIATA": "CAN",
+    "aircraftModel": "COMAC C919",
+    "plannedCruiseAltitudeFt": 34000.0
+  },
+  {
+    "callsign": "HU7601",
+    "airline": "海南航空",
+    "departureIATA": "PEK",
+    "arrivalIATA": "SHA",
+    "aircraftModel": "Boeing 787-9",
+    "plannedCruiseAltitudeFt": 35000.0
+  },
+  {
+    "callsign": "HU7181",
+    "airline": "海南航空",
+    "departureIATA": "PEK",
+    "arrivalIATA": "HAK",
+    "aircraftModel": "Boeing 787-9",
+    "plannedCruiseAltitudeFt": 38000.0
+  },
+  {
+    "callsign": "HU7701",
+    "airline": "海南航空",
+    "departureIATA": "PEK",
+    "arrivalIATA": "SZX",
+    "aircraftModel": "Airbus A330-300",
+    "plannedCruiseAltitudeFt": 36000.0
+  },
+  {
+    "callsign": "3U8881",
+    "airline": "四川航空",
+    "departureIATA": "CTU",
+    "arrivalIATA": "PEK",
+    "aircraftModel": "Airbus A350-900 (熊猫涂装)",
+    "plannedCruiseAltitudeFt": 36000.0
+  },
+  {
+    "callsign": "3U8882",
+    "airline": "四川航空",
+    "departureIATA": "PEK",
+    "arrivalIATA": "CTU",
+    "aircraftModel": "Airbus A350-900",
+    "plannedCruiseAltitudeFt": 37000.0
+  },
+  {
+    "callsign": "3U8633",
+    "airline": "四川航空 (英雄机组航线)",
+    "departureIATA": "CKG",
+    "arrivalIATA": "LXA",
+    "aircraftModel": "Airbus A319",
+    "plannedCruiseAltitudeFt": 32100.0
+  },
+  {
+    "callsign": "MF8101",
+    "airline": "厦门航空",
+    "departureIATA": "XMN",
+    "arrivalIATA": "PEK",
+    "aircraftModel": "Boeing 787-8",
+    "plannedCruiseAltitudeFt": 36000.0
+  },
+  {
+    "callsign": "MF8102",
+    "airline": "厦门航空",
+    "departureIATA": "PEK",
+    "arrivalIATA": "XMN",
+    "aircraftModel": "Boeing 737-800",
+    "plannedCruiseAltitudeFt": 35000.0
+  },
+  {
+    "callsign": "HO1251",
+    "airline": "吉祥航空",
+    "departureIATA": "SHA",
+    "arrivalIATA": "PEK",
+    "aircraftModel": "Boeing 787-9 (吉享丝路)",
+    "plannedCruiseAltitudeFt": 35000.0
+  },
+  {
+    "callsign": "9C8801",
+    "airline": "春秋航空",
+    "departureIATA": "SHA",
+    "arrivalIATA": "SZX",
+    "aircraftModel": "Airbus A320neo",
+    "plannedCruiseAltitudeFt": 33000.0
+  },
+  {
+    "callsign": "ZH9101",
+    "airline": "深圳航空",
+    "departureIATA": "SZX",
+    "arrivalIATA": "PEK",
+    "aircraftModel": "Airbus A330-300",
+    "plannedCruiseAltitudeFt": 36000.0
+  },
+  {
+    "callsign": "SC1151",
+    "airline": "山东航空",
+    "departureIATA": "TNA",
+    "arrivalIATA": "PEK",
+    "aircraftModel": "Boeing 737-800",
+    "plannedCruiseAltitudeFt": 28000.0
+  },
+  {
+    "callsign": "KN5988",
+    "airline": "中国联合航空",
+    "departureIATA": "PKX",
+    "arrivalIATA": "SHA",
+    "aircraftModel": "Boeing 737-800",
+    "plannedCruiseAltitudeFt": 31000.0
+  },
+  {
+    "callsign": "GS7851",
+    "airline": "天津航空",
+    "departureIATA": "TSN",
+    "arrivalIATA": "SHA",
+    "aircraftModel": "Airbus A320",
+    "plannedCruiseAltitudeFt": 30000.0
+  },
+  {
+    "callsign": "GJ8888",
+    "airline": "长龙航空",
+    "departureIATA": "HGH",
+    "arrivalIATA": "PEK",
+    "aircraftModel": "Airbus A321neo",
+    "plannedCruiseAltitudeFt": 34000.0
+  }
+]

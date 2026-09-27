@@ -175,6 +175,14 @@ public final class OfflineResourceManager: @unchecked Sendable {
         return packageStatuses[packageId] ?? .notDownloaded
     }
 
+    /// 快捷判断指定资源包是否已安装就绪
+    public func isPackageInstalled(packageId: String) -> Bool {
+        if case .installed = getStatus(for: packageId) {
+            return true
+        }
+        return false
+    }
+
     /// 查询某个本地资源文件是否存在于沙盒中
     public func isFileAvailable(localFileName: String) -> Bool {
         let fileURL = storageDirectory.appendingPathComponent(localFileName)

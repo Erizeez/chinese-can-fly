@@ -31,7 +31,7 @@ public struct AeronauticalMapView: View {
                         Image(systemName: "magnifyingglass")
                             .foregroundStyle(.blue)
 
-                        TextField("检索 779 座真实机场 (如 首都, 虹桥, SQJ, 三明)", text: $searchQuery)
+                        TextField("检索全国机场 (如 首都, 虹桥, SQJ, 三明)", text: $searchQuery)
                             .textFieldStyle(.plain)
                             .textInputAutocapitalization(.characters)
                             .autocorrectionDisabled()
@@ -61,14 +61,21 @@ public struct AeronauticalMapView: View {
                     if !searchQuery.isEmpty {
                         VStack(spacing: 0) {
                             if searchResults.isEmpty {
-                                HStack {
-                                    Image(systemName: "questionmark.circle")
-                                        .foregroundStyle(.secondary)
-                                    Text("在 779 座离线真实跑道库中未找到“\(searchQuery)”")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                VStack(spacing: 4) {
+                                    HStack {
+                                        Image(systemName: "questionmark.circle")
+                                            .foregroundStyle(.secondary)
+                                        Text("未找到“\(searchQuery)”")
+                                            .font(.caption.bold())
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    if !AirportRepository.shared.isFullDatabaseInstalled {
+                                        Text("当前为基础核心库。可前往【设置 -> 离线资源管理】下载 779 座全量跑道库。")
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+                                    }
                                 }
-                                .padding(14)
+                                .padding(12)
                             } else {
                                 ScrollView {
                                     LazyVStack(spacing: 0) {

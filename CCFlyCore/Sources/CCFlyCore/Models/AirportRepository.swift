@@ -79,30 +79,31 @@ public final class AirportRepository: @unchecked Sendable {
         }
     }
 
-    /// 后台线程加载完整 779 座机场与 354 条跑道数据 (优先从用户沙盒离线资源加载)
+    public private(set) var isFullDatabaseInstalled: Bool = false
+    public var totalLoadedAirportsCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return airports.count
+    }
+
+    /// 后台线程加载完整 779 座机场与 354 条跑道数据 (严格从用户沙盒离线资源按需加载)
     private func loadFullDatabaseInBackground() {
-        var targetURL: URL? = nil
-
-        // 1. 优先检查沙盒离线资源管理目录
-        if let sandboxURL = OfflineResourceManager.shared.localFileURL(for: "china_airports_runways.json") {
-            targetURL = sandboxURL
-        } else {
-            // 2. 检查 App Bundle 是否存在
-            #if SWIFT_PACKAGE
-            let bundle = Bundle.module
-            #else
-            let bundle = Bundle.main
-            #endif
-            targetURL = bundle.url(forResource: "china_airports_runways", withExtension: "json")
-        }
-
-        guard let url = targetURL else {
-            // 若用户未下载且无内置，则保持 8 大核心枢纽机场极速缓存
+        // 严格检查沙盒离线资源管理目录
+        guard let sandboxURL = OfflineResourceManager.shared.localFileURL(for: "china_airports_runways.json") else {
+            // 用户未下载或已删除离线跑道包，重置回基础 22 座核心枢纽机场兜底
+            lock.lock()
+            self.airports = Self.coreHubAirports
+            self.airportsByICAO.removeAll()
+            self.airportsByIATA.removeAll()
+            indexAirports(Self.coreHubAirports)
+            self.isFullDatabaseInstalled = false
+            self.isLoaded = true
+            lock.unlock()
             return
         }
 
         do {
-            let data = try Data(contentsOf: url)
+            let data = try Data(contentsOf: sandboxURL)
             let decoded = try JSONDecoder().decode([Airport].self, from: data)
             
             // 将真实的跑道几何与核心机场中文官方名深度融合
@@ -128,12 +129,15 @@ public final class AirportRepository: @unchecked Sendable {
 
             lock.lock()
             self.airports = mergedList
+            self.airportsByICAO.removeAll()
+            self.airportsByIATA.removeAll()
             indexAirports(mergedList)
+            self.isFullDatabaseInstalled = true
             self.isLoaded = true
             lock.unlock()
-            print("✈️ [AIRPORT_REPO] 成功在后台载入 \(mergedList.count) 座真实机场与真实跑道物理模型")
+            print("✈️ [AIRPORT_REPO] 成功从沙盒离线资源载入 \(mergedList.count) 座真实机场与真实跑道物理模型")
         } catch {
-            print("后台解析机场数据库失败: \(error)")
+            print("后台解析沙盒机场数据库失败: \(error)")
         }
     }
 

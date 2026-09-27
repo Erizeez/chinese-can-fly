@@ -81,7 +81,25 @@ public enum NavigationMath {
     }
 }
 
-/// 离线航班号检索数据库
+/// 离线航班航线记录结构体 (供 JSON 反序列化及管理)
+public struct FlightRouteEntry: Codable, Sendable {
+    public let callsign: String
+    public let airline: String
+    public let departureIATA: String
+    public let arrivalIATA: String
+    public let aircraftModel: String
+    public let plannedCruiseAltitudeFt: Double
+
+    public init(callsign: String, airline: String, departureIATA: String, arrivalIATA: String, aircraftModel: String, plannedCruiseAltitudeFt: Double) {
+        self.callsign = callsign
+        self.airline = airline
+        self.departureIATA = departureIATA
+        self.arrivalIATA = arrivalIATA
+        self.aircraftModel = aircraftModel
+        self.plannedCruiseAltitudeFt = plannedCruiseAltitudeFt
+    }
+}
+
 /// 用户自定义创建的离线航班航线记录
 public struct CustomFlightEntry: Codable, Sendable {
     public let callsign: String
@@ -101,66 +119,56 @@ public struct CustomFlightEntry: Codable, Sendable {
     }
 }
 
-/// 离线航班号检索数据库 (内置高频干线 + 用户自定义持久化航线 + 智能航司推断)
+/// 离线航班号检索数据库 (按需动态加载用户沙盒已下载离线包 + 用户自定义航线 + 智能航司推断)
 public final class OfflineFlightDatabase: @unchecked Sendable {
     public static let shared = OfflineFlightDatabase()
 
     private let storageKey = "CCFly_CustomFlights_Store_v1"
     private var customSchedules: [String: CustomFlightEntry] = [:]
+    private var offlinePackageSchedules: [String: FlightRouteEntry] = [:]
+    public private(set) var isOfflinePackageInstalled: Bool = false
     private let lock = NSLock()
-
-    // 预置国内核心干线与热门支线网络 (航司、航班号、起降 IATA、机型、预设计划巡航高度)
-    private let staticSchedules: [String: (airline: String, dep: String, arr: String, model: String, alt: Double)] = [
-        // 国航 Air China
-        "CA1501": ("中国国际航空", "PEK", "SHA", "Airbus A350-900", 35000),
-        "CA1502": ("中国国际航空", "SHA", "PEK", "Airbus A350-900", 36000),
-        "CA1831": ("中国国际航空", "PEK", "CAN", "Boeing 777-300ER", 38000),
-        "CA1301": ("中国国际航空", "PEK", "CAN", "Airbus A330-300", 36000),
-        "CA4101": ("中国国际航空", "PEK", "CTU", "Boeing 787-9", 37000),
-        "CA1405": ("中国国际航空", "PEK", "CKG", "Boeing 737-800", 34000),
-        
-        // 东航 China Eastern (含用户查询的沙县至上海核心班次 MU6594)
-        "MU6594": ("中国东方航空", "SQJ", "SHA", "Boeing 737-800", 28000),
-        "MU6593": ("中国东方航空", "SHA", "SQJ", "Boeing 737-800", 27000),
-        "MU5101": ("中国东方航空", "SHA", "PEK", "Boeing 777-300ER", 36000),
-        "MU5102": ("中国东方航空", "PEK", "SHA", "Airbus A350-900", 35000),
-        "MU5183": ("中国东方航空", "PVG", "CAN", "Airbus A330-200", 34000),
-        "MU5301": ("中国东方航空", "SHA", "CAN", "Airbus A320neo", 33000),
-        "MU9191": ("中国东方航空 (C919全球首发)", "SHA", "PEK", "COMAC C919", 35000),
-        "MU9192": ("中国东方航空 (C919全球首发)", "PEK", "SHA", "COMAC C919", 36000),
-        
-        // 南航 China Southern
-        "CZ3101": ("中国南方航空", "CAN", "PEK", "Airbus A350-900", 37000),
-        "CZ3002": ("中国南方航空", "PKX", "CAN", "Boeing 787-8", 36000),
-        "CZ3523": ("中国南方航空", "CAN", "SHA", "Boeing 787-9", 35000),
-        "CZ3907": ("中国南方航空", "CAN", "CTU", "Airbus A330-300", 34000),
-        "CZ3401": ("中国南方航空", "CAN", "WUH", "Boeing 737-800", 32000),
-        
-        // 海航 Hainan Airlines
-        "HU7601": ("海南航空", "PEK", "SHA", "Boeing 787-9", 35000),
-        "HU7181": ("海南航空", "PEK", "HAK", "Boeing 787-9", 38000),
-        "HU7701": ("海南航空", "PEK", "SZX", "Airbus A330-300", 36000),
-
-        // 川航 Sichuan Airlines
-        "3U8881": ("四川航空", "CTU", "PEK", "Airbus A350-900 (熊猫涂装)", 36000),
-        "3U8882": ("四川航空", "PEK", "CTU", "Airbus A350-900", 37000),
-
-        // 厦航 Xiamen Air
-        "MF8101": ("厦门航空", "XMN", "PEK", "Boeing 787-8", 36000),
-        "MF8102": ("厦门航空", "PEK", "XMN", "Boeing 737-800", 35000),
-
-        // 吉祥 & 春秋
-        "HO1251": ("吉祥航空", "SHA", "PEK", "Boeing 787-9 (吉享丝路)", 35000),
-        "9C8801": ("春秋航空", "SHA", "SZX", "Airbus A320neo", 33000),
-
-        // 深航 & 山航 & 联航
-        "ZH9101": ("深圳航空", "SZX", "PEK", "Airbus A330-300", 36000),
-        "SC1151": ("山东航空", "TNA", "PEK", "Boeing 737-800", 28000),
-        "KN5988": ("中国联合航空", "PKX", "SHA", "Boeing 737-800", 31000)
-    ]
 
     private init() {
         loadCustomFlightsFromDisk()
+        reloadOfflineRoutesFromDisk()
+
+        // 监听离线资源包变更通知 (下载完成或删除时自动同步重载)
+        NotificationCenter.default.addObserver(
+            forName: OfflineResourceManager.resourceUpdatedNotification,
+            object: nil,
+            queue: nil
+        ) { [weak self] _ in
+            self?.reloadOfflineRoutesFromDisk()
+        }
+    }
+
+    /// 重新加载沙盒已下载的离线航线数据库
+    public func reloadOfflineRoutesFromDisk() {
+        var loaded: [String: FlightRouteEntry] = [:]
+        var installed = false
+
+        if let sandboxURL = OfflineResourceManager.shared.localFileURL(for: "china_flight_routes.json") {
+            if let data = try? Data(contentsOf: sandboxURL),
+               let decoded = try? JSONDecoder().decode([FlightRouteEntry].self, from: data) {
+                for item in decoded {
+                    loaded[item.callsign.uppercased()] = item
+                }
+                installed = true
+            }
+        }
+
+        lock.lock()
+        self.offlinePackageSchedules = loaded
+        self.isOfflinePackageInstalled = installed
+        lock.unlock()
+    }
+
+    /// 当前已安装离线包中的航线总数
+    public var totalOfflineRoutesCount: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return offlinePackageSchedules.count
     }
 
     /// 根据航班号前缀自动推断航空公司官方全称
@@ -194,7 +202,7 @@ public final class OfflineFlightDatabase: @unchecked Sendable {
         return "民航定期客运"
     }
 
-    /// 根据航班号检索航线计划 (优先匹配用户自定义库，其次匹配内置库)
+    /// 根据航班号检索航线计划 (优先匹配用户自定义库，其次匹配沙盒已下载离线库)
     public func lookupFlight(callsign: String) -> FlightPlan? {
         let clean = callsign.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
 
@@ -211,12 +219,12 @@ public final class OfflineFlightDatabase: @unchecked Sendable {
             arr = custom.arr
             model = custom.model
             alt = custom.alt
-        } else if let entry = staticSchedules[clean] {
+        } else if let entry = offlinePackageSchedules[clean] {
             airline = entry.airline
-            dep = entry.dep
-            arr = entry.arr
-            model = entry.model
-            alt = entry.alt
+            dep = entry.departureIATA
+            arr = entry.arrivalIATA
+            model = entry.aircraftModel
+            alt = entry.plannedCruiseAltitudeFt
         } else {
             lock.unlock()
             return nil
@@ -247,6 +255,22 @@ public final class OfflineFlightDatabase: @unchecked Sendable {
         )
     }
 
+    /// 判断航班是否来源于用户自定义录入
+    public func isCustomFlight(callsign: String) -> Bool {
+        let clean = callsign.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        lock.lock()
+        defer { lock.unlock() }
+        return customSchedules[clean] != nil
+    }
+
+    /// 判断航班是否存在于已安装的离线包中
+    public func isContainedInOfflinePackage(callsign: String) -> Bool {
+        let clean = callsign.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        lock.lock()
+        defer { lock.unlock() }
+        return offlinePackageSchedules[clean] != nil
+    }
+
     /// 保存用户自定义航班计划并持久化
     public func saveCustomFlight(callsign: String, airline: String, dep: String, arr: String, model: String, alt: Double) {
         let clean = callsign.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
@@ -271,11 +295,18 @@ public final class OfflineFlightDatabase: @unchecked Sendable {
         lock.unlock()
     }
 
-    /// 获取所有支持的航班号列表 (含内置及自定义)
+    /// 获取所有用户自定义航班列表
+    public func getAllCustomFlights() -> [CustomFlightEntry] {
+        lock.lock()
+        defer { lock.unlock() }
+        return Array(customSchedules.values).sorted { $0.callsign < $1.callsign }
+    }
+
+    /// 获取所有支持的航班号列表 (含已下载离线包及自定义)
     public func getAvailableCallsigns() -> [String] {
         lock.lock()
         defer { lock.unlock() }
-        let allKeys = Set(staticSchedules.keys).union(customSchedules.keys)
+        let allKeys = Set(offlinePackageSchedules.keys).union(customSchedules.keys)
         return Array(allKeys).sorted()
     }
 
