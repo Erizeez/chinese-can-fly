@@ -1,0 +1,10 @@
+//
+// Signing.xcconfig
+// 公共签名基线配置文件 (提交至 Git 开源仓库)
+//
+
+CODE_SIGN_STYLE = Automatic
+CODE_SIGN_IDENTITY = Apple Development
+
+// 可选载入本地私有开发团队配置 (若存在则自动覆盖，不存在则忽略，保护个人隐私)
+#include? "LocalSigning.xcconfig"

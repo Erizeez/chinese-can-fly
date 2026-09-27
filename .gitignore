@@ -17,3 +17,7 @@ scripts/cache/
 # Artifacts
 *.ipa
 *.app
+
+# Local Signing & Privacy (本地证书隐私保护)
+Configuration/LocalSigning.xcconfig
+*.local.xcconfig

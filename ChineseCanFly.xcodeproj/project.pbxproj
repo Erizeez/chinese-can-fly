@@ -17,6 +17,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		1C6084A9446081E50AEB069E /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 		2657524D06DF5DA18EF930D1 /* AvionicsTelemetryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvionicsTelemetryView.swift; sourceTree = "<group>"; };
 		334321BE32649839F4DFF8C7 /* CCFlyCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = CCFlyCore; path = CCFlyCore; sourceTree = SOURCE_ROOT; };
 		4115493844D381F53D8B18B5 /* OfflineMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineMapView.swift; sourceTree = "<group>"; };
@@ -62,6 +63,7 @@
 			isa = PBXGroup;
 			children = (
 				CB3917B423301E33DE588918 /* App */,
+				F3A43DB63BABE1D900B20E98 /* Configuration */,
 				FF0C722319B0A4AD53AA8075 /* Packages */,
 				253620EAEC5561A2BCC19225 /* Products */,
 			);
@@ -83,6 +85,14 @@
 				D92AF95EFE0298D67FF2A780 /* FlightDataManager.swift */,
 			);
 			path = Services;
+			sourceTree = "<group>";
+		};
+		F3A43DB63BABE1D900B20E98 /* Configuration */ = {
+			isa = PBXGroup;
+			children = (
+				1C6084A9446081E50AEB069E /* Signing.xcconfig */,
+			);
+			path = Configuration;
 			sourceTree = "<group>";
 		};
 		FF0C722319B0A4AD53AA8075 /* Packages */ = {
@@ -125,7 +135,6 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					3709237EA0441104EA0258BC = {
-						DevelopmentTeam = LMN7J83U7H;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -171,11 +180,9 @@
 /* Begin XCBuildConfiguration section */
 		28B59578DA0313946BB08B2F /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 1C6084A9446081E50AEB069E /* Signing.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = LMN7J83U7H;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -312,11 +319,9 @@
 		};
 		E7F50729A76265DB6E7CFD22 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 1C6084A9446081E50AEB069E /* Signing.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = LMN7J83U7H;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;

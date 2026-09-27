@@ -6,6 +6,9 @@ options:
 packages:
   CCFlyCore:
     path: ./CCFlyCore
+configs:
+  Debug: debug
+  Release: release
 targets:
   ChineseCanFly:
     type: application
@@ -17,15 +20,15 @@ targets:
           - "Info.plist"
     info:
       path: App/Info.plist
+    configFiles:
+      Debug: Configuration/Signing.xcconfig
+      Release: Configuration/Signing.xcconfig
     dependencies:
       - package: CCFlyCore
     settings:
       base:
         PRODUCT_NAME: "ChineseCanFly"
         PRODUCT_BUNDLE_IDENTIFIER: "com.erizeez.ChineseCanFly"
-        DEVELOPMENT_TEAM: "LMN7J83U7H"
-        CODE_SIGN_STYLE: "Automatic"
-        CODE_SIGN_IDENTITY: "Apple Development"
         INFOPLIST_FILE: "App/Info.plist"
         GENERATE_INFOPLIST_FILE: false
         SWIFT_VERSION: "5.0"
