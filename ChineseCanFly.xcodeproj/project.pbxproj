@@ -1,0 +1,353 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		2B4D876210127472BCC887A4 /* FlightDataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2DDE55796A0A2FCCE8BA0DD /* FlightDataView.swift */; };
+		513DED83B19B9537F8CBF724 /* AvionicsTelemetryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2657524D06DF5DA18EF930D1 /* AvionicsTelemetryView.swift */; };
+		5606CB0CA5C6CDE0CA624302 /* OfflineMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4115493844D381F53D8B18B5 /* OfflineMapView.swift */; };
+		B990F54D9218E826E0975053 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A900CD71A8BE0FC43F21356 /* SettingsView.swift */; };
+		D5F238C6A9F239A6CA7A5940 /* CCFlyCore in Frameworks */ = {isa = PBXBuildFile; productRef = F7C5BFC3055A537F3BC41971 /* CCFlyCore */; };
+		F979021A4CDB483EDAF1E0CC /* ChineseCanFlyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E361BFBBD93BE3D3B589088B /* ChineseCanFlyApp.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		2657524D06DF5DA18EF930D1 /* AvionicsTelemetryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvionicsTelemetryView.swift; sourceTree = "<group>"; };
+		334321BE32649839F4DFF8C7 /* CCFlyCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = CCFlyCore; path = CCFlyCore; sourceTree = SOURCE_ROOT; };
+		4115493844D381F53D8B18B5 /* OfflineMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineMapView.swift; sourceTree = "<group>"; };
+		8A900CD71A8BE0FC43F21356 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		94B073895B2B264799D52A9C /* ChineseCanFly.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ChineseCanFly.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B2DDE55796A0A2FCCE8BA0DD /* FlightDataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightDataView.swift; sourceTree = "<group>"; };
+		E361BFBBD93BE3D3B589088B /* ChineseCanFlyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChineseCanFlyApp.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		B8CB098041FE1E247BFEAF48 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D5F238C6A9F239A6CA7A5940 /* CCFlyCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		253620EAEC5561A2BCC19225 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				94B073895B2B264799D52A9C /* ChineseCanFly.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		2CB7748B1D2B497FACEE1E90 /* Tabs */ = {
+			isa = PBXGroup;
+			children = (
+				2657524D06DF5DA18EF930D1 /* AvionicsTelemetryView.swift */,
+				B2DDE55796A0A2FCCE8BA0DD /* FlightDataView.swift */,
+				4115493844D381F53D8B18B5 /* OfflineMapView.swift */,
+				8A900CD71A8BE0FC43F21356 /* SettingsView.swift */,
+			);
+			path = Tabs;
+			sourceTree = "<group>";
+		};
+		AF3953F82C3C550AB3538BBE = {
+			isa = PBXGroup;
+			children = (
+				CB3917B423301E33DE588918 /* App */,
+				FF0C722319B0A4AD53AA8075 /* Packages */,
+				253620EAEC5561A2BCC19225 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		CB3917B423301E33DE588918 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				E361BFBBD93BE3D3B589088B /* ChineseCanFlyApp.swift */,
+				2CB7748B1D2B497FACEE1E90 /* Tabs */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		FF0C722319B0A4AD53AA8075 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				334321BE32649839F4DFF8C7 /* CCFlyCore */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		3709237EA0441104EA0258BC /* ChineseCanFly */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DF8F168E06EC61A460B6153B /* Build configuration list for PBXNativeTarget "ChineseCanFly" */;
+			buildPhases = (
+				1825AC723A4E5496049BAFF6 /* Sources */,
+				B8CB098041FE1E247BFEAF48 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ChineseCanFly;
+			packageProductDependencies = (
+				F7C5BFC3055A537F3BC41971 /* CCFlyCore */,
+			);
+			productName = ChineseCanFly;
+			productReference = 94B073895B2B264799D52A9C /* ChineseCanFly.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		41DFE5172DA2C323747718D8 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = E121AFF7371557609CFB09A4 /* Build configuration list for PBXProject "ChineseCanFly" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = AF3953F82C3C550AB3538BBE;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				4F01E04EABCDDA7B12AE5214 /* XCLocalSwiftPackageReference "CCFlyCore" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 253620EAEC5561A2BCC19225 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				3709237EA0441104EA0258BC /* ChineseCanFly */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		1825AC723A4E5496049BAFF6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				513DED83B19B9537F8CBF724 /* AvionicsTelemetryView.swift in Sources */,
+				F979021A4CDB483EDAF1E0CC /* ChineseCanFlyApp.swift in Sources */,
+				2B4D876210127472BCC887A4 /* FlightDataView.swift in Sources */,
+				5606CB0CA5C6CDE0CA624302 /* OfflineMapView.swift in Sources */,
+				B990F54D9218E826E0975053 /* SettingsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		28B59578DA0313946BB08B2F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = App/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.erizeez.ChineseCanFly;
+				PRODUCT_NAME = ChineseCanFly;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		3B983017323E312326CE6AA2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		9211B17081DA3BA5B02C1F44 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		E7F50729A76265DB6E7CFD22 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = App/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.erizeez.ChineseCanFly;
+				PRODUCT_NAME = ChineseCanFly;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		DF8F168E06EC61A460B6153B /* Build configuration list for PBXNativeTarget "ChineseCanFly" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E7F50729A76265DB6E7CFD22 /* Debug */,
+				28B59578DA0313946BB08B2F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		E121AFF7371557609CFB09A4 /* Build configuration list for PBXProject "ChineseCanFly" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9211B17081DA3BA5B02C1F44 /* Debug */,
+				3B983017323E312326CE6AA2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		4F01E04EABCDDA7B12AE5214 /* XCLocalSwiftPackageReference "CCFlyCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = CCFlyCore;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		F7C5BFC3055A537F3BC41971 /* CCFlyCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CCFlyCore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 41DFE5172DA2C323747718D8 /* Project object */;
+}

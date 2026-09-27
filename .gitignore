@@ -6,9 +6,6 @@
 # Xcode / Swift Package Manager
 .build/
 .swiftpm/
-Packages/
-*.xcodeproj
-*.xcworkspace
 xcuserdata/
 DerivedData/
 
