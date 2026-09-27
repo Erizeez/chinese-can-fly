@@ -133,9 +133,24 @@ chinese-can-fly/
 
 ---
 
-## 🚀 快速开始与编译验证
+## 🚀 快速开始与项目入口
 
-### 1. 运行核心算法单元测试
+### 1. 直接通过 Xcode 打开项目 (推荐)
+仓库根目录下已生成标准的 **`ChineseCanFly.xcodeproj`**：
+- **方式一（Finder 双击）**：在 Finder 中进入本目录，双击打开 [`ChineseCanFly.xcodeproj`](file:///Users/sail/Workspace/chinese-can-fly/ChineseCanFly.xcodeproj)。
+- **方式二（终端一键唤起）**：
+  ```bash
+  open ChineseCanFly.xcodeproj
+  ```
+- **运行配置**：选择 Target **`ChineseCanFly`**，选择目标设备为任一 iPhone 模拟器（如 iPhone 16 Pro / iPhone 17 Pro）或你的真实 iPhone，直接点击 **Run (⌘R)** 即可编译并启动应用。
+
+### 2. 代码组织与模块关系
+- **应用层入口**：[`App/ChineseCanFlyApp.swift`](file:///Users/sail/Workspace/chinese-can-fly/App/ChineseCanFlyApp.swift)（包含 SwiftUI 主 Tab 容器及 4 个页面视图）；
+- **权限与后台配置**：[`App/Info.plist`](file:///Users/sail/Workspace/chinese-can-fly/App/Info.plist)（已配置后台定位 `location` 与后台音频微通道 `audio`，以及运动传感器权限）；
+- **核心算法包**：[`CCFlyCore/`](file:///Users/sail/Workspace/chinese-can-fly/CCFlyCore/)（独立 Swift Package，负责 EKF 滤波、ISA 大气、客舱高度分析及机场数据）；
+- **工程自动化**：[`project.yml`](file:///Users/sail/Workspace/chinese-can-fly/project.yml)（使用 XcodeGen 配置，随时可重新生成 `.xcodeproj`）。
+
+### 3. 运行核心算法单元测试
 本项目核心算法采用独立 Swift Package 架构，在 macOS / iOS 环境下均可一键测试：
 ```bash
 cd CCFlyCore
