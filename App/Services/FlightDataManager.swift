@@ -57,8 +57,52 @@ public final class FlightDataManager: @unchecked Sendable {
     private init() {
         // 默认加载国内经典干线 CA1501 航线
         self.currentFlight = OfflineFlightDatabase.shared.lookupFlight(callsign: "CA1501")
+        setupSensorCallbacks()
         // 初始填充若干点
         appendCurrentTelemetryFrame()
+    }
+
+    private func setupSensorCallbacks() {
+        let tracker = BackgroundFlightTracker.shared
+        
+        tracker.onLocationUpdate = { [weak self] location, phase in
+            Task { @MainActor in
+                guard let self = self, !self.isSimulationRunning else { return }
+                self.latitude = location.coordinate.latitude
+                self.longitude = location.coordinate.longitude
+                self.geometricAltitudeFt = location.altitude * 3.28084
+                self.groundSpeedKts = max(0, location.speed * 1.94384)
+                if location.course >= 0 {
+                    self.groundTrackDeg = location.course
+                }
+                self.flightPhase = phase
+                self.appendCurrentTelemetryFrame()
+            }
+        }
+
+        tracker.onMotionUpdate = { [weak self] acc, grav, pitch, roll, yaw in
+            Task { @MainActor in
+                guard let self = self, !self.isSimulationRunning else { return }
+                self.pitchDeg = pitch
+                self.rollDeg = roll
+                let (nx, ny, nz) = self.bodyAligner.transformAcceleration(sensorAcc: acc + grav)
+                self.normalGForce = nz
+                self.longitudinalGForce = nx
+                self.lateralGForce = ny
+                self.dynamicsAnalyzer.processSample(normalG: nz, sinkRateFpm: -self.cabinVSIFpm)
+                self.turbulenceEDR = self.dynamicsAnalyzer.calculateTurbulenceEDR()
+            }
+        }
+
+        tracker.onPressureUpdate = { [weak self] pressureHPa in
+            Task { @MainActor in
+                guard let self = self, !self.isSimulationRunning else { return }
+                self.ambientPressureHPa = pressureHPa
+                let (cabinAlt, vsi) = self.cabinAnalyzer.update(pressureHPa: pressureHPa)
+                self.cabinAltitudeFt = cabinAlt
+                self.cabinVSIFpm = vsi
+            }
+        }
     }
 
     // MARK: - 真实传感器硬件接入与启停

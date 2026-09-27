@@ -15,36 +15,55 @@ public struct AvionicsTelemetryView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     // 1. 核心控制与工况状态栏
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack {
-                                Circle()
-                                    .fill(dataManager.isRecording ? Color.red : Color.gray)
-                                    .frame(width: 8, height: 8)
-                                Text(dataManager.isSimulationRunning ? "飞行仿真演练中 (PKX -> CAN)" : (dataManager.isRecording ? "黑匣子记录中" : "待机中"))
+                    VStack(spacing: 8) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack {
+                                    Circle()
+                                        .fill(dataManager.isRecording ? Color.red : Color.gray)
+                                        .frame(width: 8, height: 8)
+                                    Text(dataManager.isSimulationRunning ? "飞行仿真演练中 (PKX -> CAN)" : (dataManager.isRecording ? "真机黑匣子高频记录中" : "待机中 (未记录)"))
+                                        .font(.caption.bold())
+                                        .foregroundStyle(dataManager.isRecording ? .red : .secondary)
+                                }
+                                Text("阶段: \(flightPhaseTitle(dataManager.flightPhase))")
+                                    .font(.caption2.bold())
+                                    .foregroundStyle(.blue)
+                            }
+                            Spacer()
+                        }
+
+                        HStack(spacing: 10) {
+                            // 真机硬件传感器录制开关
+                            Button {
+                                if dataManager.isRecording && !dataManager.isSimulationRunning {
+                                    dataManager.stopLiveBlackbox()
+                                } else {
+                                    dataManager.startLiveBlackbox()
+                                }
+                            } label: {
+                                Label(dataManager.isRecording && !dataManager.isSimulationRunning ? "停止真机记录" : "开启真机传感器", systemImage: "record.circle")
                                     .font(.caption.bold())
-                                    .foregroundStyle(dataManager.isRecording ? .red : .secondary)
+                                    .frame(maxWidth: .infinity)
                             }
-                            Text("阶段: \(flightPhaseTitle(dataManager.flightPhase))")
-                                .font(.caption2.bold())
-                                .foregroundStyle(.blue)
-                        }
+                            .buttonStyle(.borderedProminent)
+                            .tint(dataManager.isRecording && !dataManager.isSimulationRunning ? .red : .blue)
 
-                        Spacer()
-
-                        // 仿真演练切换按钮
-                        Button {
-                            if dataManager.isSimulationRunning {
-                                dataManager.stopFlightSimulation()
-                            } else {
-                                dataManager.startFlightSimulation()
+                            // 航空动力学仿真演练开关
+                            Button {
+                                if dataManager.isSimulationRunning {
+                                    dataManager.stopFlightSimulation()
+                                } else {
+                                    dataManager.startFlightSimulation()
+                                }
+                            } label: {
+                                Label(dataManager.isSimulationRunning ? "停止演练" : "仿真演练", systemImage: dataManager.isSimulationRunning ? "stop.fill" : "play.fill")
+                                    .font(.caption.bold())
+                                    .frame(maxWidth: .infinity)
                             }
-                        } label: {
-                            Label(dataManager.isSimulationRunning ? "停止演练" : "启动仿真演练", systemImage: dataManager.isSimulationRunning ? "stop.fill" : "play.fill")
-                                .font(.caption.bold())
+                            .buttonStyle(.bordered)
+                            .tint(.orange)
                         }
-                        .buttonStyle(.borderedProminent)
-                        .tint(dataManager.isSimulationRunning ? .orange : .blue)
                     }
                     .padding(.horizontal)
 

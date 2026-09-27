@@ -1,5 +1,6 @@
 import Foundation
 import CoreLocation
+import simd
 #if os(iOS)
 import CoreMotion
 import AVFoundation
@@ -18,8 +19,10 @@ public final class BackgroundFlightTracker: NSObject, CLLocationManagerDelegate,
     public private(set) var isTracking: Bool = false
     public private(set) var currentPhase: FlightPhase = .parked
     
-    // 遥测回调处理
-    public var onTelemetryUpdate: (@Sendable (TelemetryFrame) -> Void)?
+    // 真实传感器数据回调钩子 (供 FlightDataManager 实时驱动)
+    public var onLocationUpdate: (@Sendable (CLLocation, FlightPhase) -> Void)?
+    public var onMotionUpdate: (@Sendable (simd_double3, simd_double3, Double, Double, Double) -> Void)?
+    public var onPressureUpdate: (@Sendable (Double) -> Void)?
 
     private override init() {
         super.init()
@@ -92,11 +95,26 @@ public final class BackgroundFlightTracker: NSObject, CLLocationManagerDelegate,
     }
 
     private func handleMotionSample(_ motion: CMDeviceMotion) {
-        // 将高频传感器数据注入 EKF 惯导及机体坐标系分析器
+        let acc = simd_double3(
+            motion.userAcceleration.x,
+            motion.userAcceleration.y,
+            motion.userAcceleration.z
+        )
+        let grav = simd_double3(
+            motion.gravity.x,
+            motion.gravity.y,
+            motion.gravity.z
+        )
+        let pitch = motion.attitude.pitch * (180.0 / .pi)
+        let roll = motion.attitude.roll * (180.0 / .pi)
+        let yaw = motion.attitude.yaw * (180.0 / .pi)
+
+        onMotionUpdate?(acc, grav, pitch, roll, yaw)
     }
 
     private func handlePressureSample(pressureKPa: Double) {
-        // pressureKPa * 10 得到 hPa (百帕)
+        let pressureHPa = pressureKPa * 10.0
+        onPressureUpdate?(pressureHPa)
     }
     #endif
 
@@ -105,11 +123,11 @@ public final class BackgroundFlightTracker: NSObject, CLLocationManagerDelegate,
     public func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let latest = locations.last else { return }
         
-        // 自动识别飞行工况状态机
         let speedKts = max(0, latest.speed * 1.94384)
         let altitudeFt = latest.altitude * 3.28084
         
         updateFlightPhase(speedKts: speedKts, altitudeFt: altitudeFt)
+        onLocationUpdate?(latest, currentPhase)
     }
 
     private func updateFlightPhase(speedKts: Double, altitudeFt: Double) {
