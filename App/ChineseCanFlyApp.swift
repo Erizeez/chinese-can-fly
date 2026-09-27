@@ -22,9 +22,9 @@ struct MainTabView: View {
                 }
                 .tag(0)
 
-            OfflineMapView()
+            AeronauticalMapView()
                 .tabItem {
-                    Label("离线地图", systemImage: "map")
+                    Label("航图", systemImage: "map.fill")
                 }
                 .tag(1)
 

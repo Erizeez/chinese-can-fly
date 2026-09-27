@@ -7,14 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		077E626FB9ED9E446B5E87F3 /* AeronauticalMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADF4A85E5958CD1BBB1EA259 /* AeronauticalMapView.swift */; };
 		2B4D876210127472BCC887A4 /* FlightDataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2DDE55796A0A2FCCE8BA0DD /* FlightDataView.swift */; };
 		434C2E4956FF4360D9FD1AFB /* FlightDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D92AF95EFE0298D67FF2A780 /* FlightDataManager.swift */; };
 		513DED83B19B9537F8CBF724 /* AvionicsTelemetryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2657524D06DF5DA18EF930D1 /* AvionicsTelemetryView.swift */; };
-		5606CB0CA5C6CDE0CA624302 /* OfflineMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4115493844D381F53D8B18B5 /* OfflineMapView.swift */; };
 		892819A72A12CB03AF357751 /* FlightPlanStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19106EA799670D14B507FEB0 /* FlightPlanStore.swift */; };
 		B990F54D9218E826E0975053 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A900CD71A8BE0FC43F21356 /* SettingsView.swift */; };
 		D5F238C6A9F239A6CA7A5940 /* CCFlyCore in Frameworks */ = {isa = PBXBuildFile; productRef = F7C5BFC3055A537F3BC41971 /* CCFlyCore */; };
 		E744587ABDF47CCC60D86475 /* PrimaryFlightDisplayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40B3792CA9351BE25F1E1115 /* PrimaryFlightDisplayView.swift */; };
+		F0AF26B62674BAE41907A2A0 /* OfflineResourcesManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8DFBEC409260C18FAB0DDBB /* OfflineResourcesManagementView.swift */; };
 		F979021A4CDB483EDAF1E0CC /* ChineseCanFlyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E361BFBBD93BE3D3B589088B /* ChineseCanFlyApp.swift */; };
 /* End PBXBuildFile section */
 
@@ -24,10 +25,11 @@
 		2657524D06DF5DA18EF930D1 /* AvionicsTelemetryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvionicsTelemetryView.swift; sourceTree = "<group>"; };
 		334321BE32649839F4DFF8C7 /* CCFlyCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = CCFlyCore; path = CCFlyCore; sourceTree = SOURCE_ROOT; };
 		40B3792CA9351BE25F1E1115 /* PrimaryFlightDisplayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrimaryFlightDisplayView.swift; sourceTree = "<group>"; };
-		4115493844D381F53D8B18B5 /* OfflineMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineMapView.swift; sourceTree = "<group>"; };
 		8A900CD71A8BE0FC43F21356 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		94B073895B2B264799D52A9C /* ChineseCanFly.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ChineseCanFly.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		ADF4A85E5958CD1BBB1EA259 /* AeronauticalMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AeronauticalMapView.swift; sourceTree = "<group>"; };
 		B2DDE55796A0A2FCCE8BA0DD /* FlightDataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightDataView.swift; sourceTree = "<group>"; };
+		C8DFBEC409260C18FAB0DDBB /* OfflineResourcesManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineResourcesManagementView.swift; sourceTree = "<group>"; };
 		D92AF95EFE0298D67FF2A780 /* FlightDataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlightDataManager.swift; sourceTree = "<group>"; };
 		E361BFBBD93BE3D3B589088B /* ChineseCanFlyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChineseCanFlyApp.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -63,9 +65,10 @@
 		2CB7748B1D2B497FACEE1E90 /* Tabs */ = {
 			isa = PBXGroup;
 			children = (
+				ADF4A85E5958CD1BBB1EA259 /* AeronauticalMapView.swift */,
 				2657524D06DF5DA18EF930D1 /* AvionicsTelemetryView.swift */,
 				B2DDE55796A0A2FCCE8BA0DD /* FlightDataView.swift */,
-				4115493844D381F53D8B18B5 /* OfflineMapView.swift */,
+				C8DFBEC409260C18FAB0DDBB /* OfflineResourcesManagementView.swift */,
 				8A900CD71A8BE0FC43F21356 /* SettingsView.swift */,
 			);
 			path = Tabs;
@@ -180,12 +183,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				077E626FB9ED9E446B5E87F3 /* AeronauticalMapView.swift in Sources */,
 				513DED83B19B9537F8CBF724 /* AvionicsTelemetryView.swift in Sources */,
 				F979021A4CDB483EDAF1E0CC /* ChineseCanFlyApp.swift in Sources */,
 				434C2E4956FF4360D9FD1AFB /* FlightDataManager.swift in Sources */,
 				2B4D876210127472BCC887A4 /* FlightDataView.swift in Sources */,
 				892819A72A12CB03AF357751 /* FlightPlanStore.swift in Sources */,
-				5606CB0CA5C6CDE0CA624302 /* OfflineMapView.swift in Sources */,
+				F0AF26B62674BAE41907A2A0 /* OfflineResourcesManagementView.swift in Sources */,
 				E744587ABDF47CCC60D86475 /* PrimaryFlightDisplayView.swift in Sources */,
 				B990F54D9218E826E0975053 /* SettingsView.swift in Sources */,
 			);

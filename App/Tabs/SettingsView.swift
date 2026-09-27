@@ -59,34 +59,25 @@ public struct SettingsView: View {
                     }
                 }
 
-                // 3. 离线数据库信息
-                Section("离线航空数据库 (OurAirports & CAAC)") {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("中国境内机场与跑道元数据库")
-                                .font(.subheadline)
-                            Text("已收录 779 座机场、354 条跑道真实走向")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
+                // 3. 离线资源管理与按需下载
+                Section("离线航电资源包管理") {
+                    NavigationLink {
+                        OfflineResourcesManagementView()
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("离线航电资源管理中心")
+                                    .font(.headline)
+                                Text("按需下载/管理机场跑道、航线网络、矢量切片与物理模型")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Text(OfflineResourceManager.shared.totalDiskUsageString())
+                                .font(.caption.bold().monospaced())
+                                .foregroundStyle(.blue)
                         }
-                        Spacer()
-                        Text("已离线装载")
-                            .font(.caption2.bold())
-                            .foregroundStyle(.green)
-                    }
-
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("国内核心航线计划网络")
-                                .font(.subheadline)
-                            Text("预置 5000+ 干线航班号、起降机场对与大圆航距")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Text("100% 离线就绪")
-                            .font(.caption2.bold())
-                            .foregroundStyle(.blue)
+                        .padding(.vertical, 2)
                     }
                 }
 
