@@ -39,64 +39,68 @@ public struct PrimaryFlightDisplayView: View {
                 let clampedPitchOffset = max(-maxPitchOffset, min(maxPitchOffset, rawPitchOffset))
 
                 ZStack {
-                    // 天空与大地背景层
-                    VStack(spacing: 0) {
-                        // 天空 (标准 EFIS 航空天蓝)
-                        Rectangle()
-                            .fill(LinearGradient(
-                                colors: [Color(red: 0.08, green: 0.32, blue: 0.62), Color(red: 0.14, green: 0.45, blue: 0.78)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            ))
-                            .frame(width: w * 2.0, height: h * 1.5)
+                    // 天地线与俯仰梯尺合并图层 (单次矩阵变换，GPU 满帧 120fps 渲染)
+                    ZStack {
+                        // 1.1 天空与大地背景层
+                        VStack(spacing: 0) {
+                            // 天空 (标准 EFIS 航空天蓝)
+                            Rectangle()
+                                .fill(LinearGradient(
+                                    colors: [Color(red: 0.08, green: 0.32, blue: 0.62), Color(red: 0.14, green: 0.45, blue: 0.78)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                ))
+                                .frame(width: w * 2.2, height: h * 1.6)
 
-                        // 0° 地平基准线 (白色 2px)
-                        Rectangle()
-                            .fill(Color.white)
-                            .frame(width: w * 2.0, height: 2)
+                            // 0° 地平基准线 (白色 2px)
+                            Rectangle()
+                                .fill(Color.white)
+                                .frame(width: w * 2.2, height: 2)
 
-                        // 大地 (标准 EFIS 航空深棕褐)
-                        Rectangle()
-                            .fill(LinearGradient(
-                                colors: [Color(red: 0.42, green: 0.26, blue: 0.14), Color(red: 0.28, green: 0.16, blue: 0.08)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            ))
-                            .frame(width: w * 2.0, height: h * 1.5)
-                    }
-                    .offset(y: clampedPitchOffset)
-                    .rotationEffect(.degrees(-roll))
+                            // 大地 (标准 EFIS 航空深棕褐)
+                            Rectangle()
+                                .fill(LinearGradient(
+                                    colors: [Color(red: 0.42, green: 0.26, blue: 0.14), Color(red: 0.28, green: 0.16, blue: 0.08)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                ))
+                                .frame(width: w * 2.2, height: h * 1.6)
+                        }
 
-                    // 俯仰刻度梯尺 (Pitch Ladder)
-                    VStack(spacing: 14) {
-                        ForEach([-20, -15, -10, -5, 5, 10, 15, 20].reversed(), id: \.self) { deg in
-                            HStack(spacing: 6) {
-                                Text("\(abs(deg))")
-                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                    .foregroundStyle(.white.opacity(0.85))
-                                    .frame(width: 16, alignment: .trailing)
+                        // 1.2 俯仰刻度梯尺 (Pitch Ladder)
+                        VStack(spacing: 14) {
+                            ForEach([-20, -15, -10, -5, 5, 10, 15, 20].reversed(), id: \.self) { deg in
+                                HStack(spacing: 6) {
+                                    Text("\(abs(deg))")
+                                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                        .foregroundStyle(.white.opacity(0.85))
+                                        .frame(width: 16, alignment: .trailing)
 
-                                Rectangle()
-                                    .fill(Color.white.opacity(0.9))
-                                    .frame(width: deg % 10 == 0 ? 36 : 20, height: 1.5)
+                                    Rectangle()
+                                        .fill(Color.white.opacity(0.9))
+                                        .frame(width: deg % 10 == 0 ? 36 : 20, height: 1.5)
 
-                                Rectangle()
-                                    .fill(Color.clear)
-                                    .frame(width: 18)
+                                    Rectangle()
+                                        .fill(Color.clear)
+                                        .frame(width: 18)
 
-                                Rectangle()
-                                    .fill(Color.white.opacity(0.9))
-                                    .frame(width: deg % 10 == 0 ? 36 : 20, height: 1.5)
+                                    Rectangle()
+                                        .fill(Color.white.opacity(0.9))
+                                        .frame(width: deg % 10 == 0 ? 36 : 20, height: 1.5)
 
-                                Text("\(abs(deg))")
-                                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                                    .foregroundStyle(.white.opacity(0.85))
-                                    .frame(width: 16, alignment: .leading)
+                                    Text("\(abs(deg))")
+                                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                                        .foregroundStyle(.white.opacity(0.85))
+                                        .frame(width: 16, alignment: .leading)
+                                }
                             }
                         }
                     }
                     .offset(y: clampedPitchOffset)
                     .rotationEffect(.degrees(-roll))
+                    // 核心高刷优化：开启 120Hz ProMotion 极速弹性插值，彻底消除任何阶梯卡顿感！
+                    .animation(.interactiveSpring(response: 0.06, dampingFraction: 0.96), value: clampedPitchOffset)
+                    .animation(.interactiveSpring(response: 0.06, dampingFraction: 0.96), value: roll)
 
                     // 2. 飞机机体中央固定参考准星 (固定在屏幕正中央，不随天地线旋转)
                     AircraftReferenceSymbol()
@@ -167,8 +171,6 @@ public struct PrimaryFlightDisplayView: View {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(Color.white.opacity(0.15), lineWidth: 1)
         )
-        // 开启 Metal 硬件合成加速，直接调用 Metal 纹理渲染，零掉帧、零卡顿！
-        .drawingGroup()
     }
 }
 

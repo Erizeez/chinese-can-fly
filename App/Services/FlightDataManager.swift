@@ -133,8 +133,8 @@ public final class FlightDataManager: @unchecked Sendable {
                 computedNy = acc.x / 9.80665
             }
 
-            // 姿态一阶平滑低通滤波 (alpha = 0.35)
-            let alpha = 0.35
+            // 姿态高灵敏度平滑滤波 (alpha = 0.55，在 60Hz/100Hz 高刷下消除滞后感)
+            let alpha = 0.55
             self.filteredPitch = (alpha * targetPitch) + ((1.0 - alpha) * self.filteredPitch)
             self.filteredRoll = (alpha * targetRoll) + ((1.0 - alpha) * self.filteredRoll)
 
@@ -144,10 +144,10 @@ public final class FlightDataManager: @unchecked Sendable {
             let curPitch = self.filteredPitch
             let curRoll = self.filteredRoll
 
-            // 2. 检查 30Hz 节流与主线程拥塞状态
+            // 2. 解锁 60Hz / 120Hz ProMotion 极速分发 (最高 120 帧/秒，间隔 8.3ms)
             let nowMedia = CACurrentMediaTime()
-            guard nowMedia - self.lastMotionDispatchTime >= 0.033 else { return }
-            guard !self.isMotionDispatchPending else { return } // 前一帧若未消费直接丢弃，杜绝阻塞主线程
+            guard nowMedia - self.lastMotionDispatchTime >= 0.008 else { return }
+            guard !self.isMotionDispatchPending else { return }
             self.isMotionDispatchPending = true
             self.lastMotionDispatchTime = nowMedia
 

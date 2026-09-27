@@ -98,7 +98,8 @@ public final class BackgroundFlightTracker: NSObject, CLLocationManagerDelegate,
 
     #if os(iOS)
     private func startMotionAndAltimeter(highRate: Bool) {
-        let sampleRateHz: Double = highRate ? 50.0 : 15.0
+        // 核心升级：前台待机模式 60Hz 满帧感知；全航程记录模式 100Hz 航空黑匣子极限采样
+        let sampleRateHz: Double = highRate ? 100.0 : 60.0
 
         if motionManager.isDeviceMotionAvailable {
             motionManager.deviceMotionUpdateInterval = 1.0 / sampleRateHz
