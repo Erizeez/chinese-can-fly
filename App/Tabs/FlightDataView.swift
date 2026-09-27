@@ -190,33 +190,6 @@ public struct FlightDataView: View {
                     .padding()
                     .background(Color(.systemBackground))
                     .clipShape(RoundedRectangle(cornerRadius: 14))
-
-                    // 4. 便携 SDR 硬件接入状态
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("极客便携 SDR (WiFi 广播)")
-                            .font(.headline)
-                        
-                        Text("支持在机舱内通过 WiFi 监听随身便携式 Stratux / Dump1090 (1090MHz ADS-B) 接收机。")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        
-                        HStack {
-                            Text("局域网目标:")
-                                .font(.caption2)
-                            Text("http://192.168.10.1:8080")
-                                .font(.caption2.monospaced())
-                                .foregroundStyle(.blue)
-                            Spacer()
-                            Button("测试连接") {
-                                testSDRConnection()
-                            }
-                            .font(.caption2)
-                            .buttonStyle(.bordered)
-                        }
-                    }
-                    .padding()
-                    .background(Color(.systemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
                 .padding()
             }
@@ -236,7 +209,7 @@ public struct FlightDataView: View {
             onlineResult = nil
             onlineErrorMessage = nil
         } else {
-            onlineErrorMessage = "离线库暂未收录 \(callsignInput)，可通过设置添加或在线检索。"
+            onlineErrorMessage = "离线库暂未收录 \(callsignInput)，可通过搜索添加或在线刷新。"
         }
     }
 
@@ -261,21 +234,6 @@ public struct FlightDataView: View {
                 await MainActor.run {
                     self.isSearchingOnline = false
                     self.onlineErrorMessage = "连接 OpenSky API 失败: \(error.localizedDescription)"
-                }
-            }
-        }
-    }
-
-    private func testSDRConnection() {
-        Task {
-            do {
-                let acList = try await OpenSkyClient.shared.fetchDump1090Aircraft()
-                await MainActor.run {
-                    self.onlineErrorMessage = "成功连接本地便携 SDR，当前周围空域捕获到 \(acList.count) 架飞机！"
-                }
-            } catch {
-                await MainActor.run {
-                    self.onlineErrorMessage = "未能连接本地 SDR 硬件 (192.168.10.1): \(error.localizedDescription)"
                 }
             }
         }

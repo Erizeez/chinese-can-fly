@@ -118,52 +118,6 @@ public final class OpenSkyClient: Sendable {
         return nil
     }
 
-    /// 本地便携式 SDR 接收机 (Dump1090) 局域网接入客户端
-    public func fetchDump1090Aircraft(host: String = "192.168.10.1", port: Int = 8080) async throws -> [AirborneState] {
-        guard let url = URL(string: "http://\(host):\(port)/dump1090/data/aircraft.json") else {
-            return []
-        }
-
-        var request = URLRequest(url: url)
-        request.timeoutInterval = 3.0
-        let (data, _) = try await session.data(for: request)
-
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let aircraftList = json["aircraft"] as? [[String: Any]] else {
-            return []
-        }
-
-        var result: [AirborneState] = []
-        for ac in aircraftList {
-            let hex = (ac["hex"] as? String) ?? ""
-            let flight = (ac["flight"] as? String)?.trimmingCharacters(in: .whitespaces) ?? ""
-            let lat = ac["lat"] as? Double
-            let lon = ac["lon"] as? Double
-            let altFt = ac["altitude"] as? Double
-            let speed = ac["speed"] as? Double
-            let track = ac["track"] as? Double
-            let vRate = ac["vert_rate"] as? Double
-
-            if lat != nil && lon != nil {
-                result.append(AirborneState(
-                    icao24: hex,
-                    callsign: flight.isEmpty ? hex.uppercased() : flight,
-                    originCountry: "Local SDR",
-                    longitude: lon,
-                    latitude: lat,
-                    baroAltitudeMeters: altFt.map { $0 * 0.3048 },
-                    geoAltitudeMeters: nil,
-                    velocityKts: speed,
-                    trueTrackDeg: track,
-                    verticalRateFpm: vRate,
-                    onGround: false
-                ))
-            }
-        }
-
-        return result
-    }
-
     private func isCallsignMatched(userCallsign: String, adsbCallsign: String) -> Bool {
         // CA1501 匹配 CCA1501
         // MU5101 匹配 CES5101
