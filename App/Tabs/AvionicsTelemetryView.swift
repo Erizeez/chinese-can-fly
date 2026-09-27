@@ -2,11 +2,10 @@ import SwiftUI
 import CCFlyCore
 import Charts
 
-/// 飞行数据与航空传感器融合 (Avionics & Telemetry) 页面
+/// 飞行数据与航空传感器融合 (Avionics & Telemetry) 页面 - 纯实战专业级
 public struct AvionicsTelemetryView: View {
     @State private var dataManager = FlightDataManager.shared
     @State private var showCalibrationDialog: Bool = false
-    @State private var showTouchdownAlert: Bool = false
 
     public init() {}
 
@@ -14,79 +13,73 @@ public struct AvionicsTelemetryView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
-                    // 1. 核心控制与工况状态栏
-                    VStack(spacing: 8) {
+                    // 1. 核心控制与黑匣子状态栏
+                    VStack(spacing: 10) {
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
                                 HStack {
                                     Circle()
-                                        .fill(dataManager.isRecording ? Color.red : Color.gray)
+                                        .fill(dataManager.isRecording ? Color.red : Color.green)
                                         .frame(width: 8, height: 8)
-                                    Text(dataManager.isSimulationRunning ? "飞行仿真演练中 (PKX -> CAN)" : (dataManager.isRecording ? "真机黑匣子高频记录中" : "待机中 (未记录)"))
+                                    Text(dataManager.isRecording ? "黑匣子后台高频记录中 (50Hz)" : "真实传感器感知中 (待机就绪)")
                                         .font(.caption.bold())
-                                        .foregroundStyle(dataManager.isRecording ? .red : .secondary)
+                                        .foregroundStyle(dataManager.isRecording ? .red : .primary)
                                 }
-                                Text("阶段: \(flightPhaseTitle(dataManager.flightPhase))")
+                                Text("当前工况: \(flightPhaseTitle(dataManager.flightPhase))")
                                     .font(.caption2.bold())
                                     .foregroundStyle(.blue)
                             }
                             Spacer()
-                        }
 
-                        HStack(spacing: 10) {
-                            // 真机硬件传感器录制开关
+                            // 机体轴对准快速校准按钮
                             Button {
-                                if dataManager.isRecording && !dataManager.isSimulationRunning {
-                                    dataManager.stopLiveBlackbox()
-                                } else {
-                                    dataManager.startLiveBlackbox()
-                                }
+                                showCalibrationDialog = true
                             } label: {
-                                Label(dataManager.isRecording && !dataManager.isSimulationRunning ? "停止真机记录" : "开启真机传感器", systemImage: "record.circle")
+                                Label("校准机体轴", systemImage: "gyroscope")
                                     .font(.caption.bold())
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.borderedProminent)
-                            .tint(dataManager.isRecording && !dataManager.isSimulationRunning ? .red : .blue)
-
-                            // 航空动力学仿真演练开关
-                            Button {
-                                if dataManager.isSimulationRunning {
-                                    dataManager.stopFlightSimulation()
-                                } else {
-                                    dataManager.startFlightSimulation()
-                                }
-                            } label: {
-                                Label(dataManager.isSimulationRunning ? "停止演练" : "仿真演练", systemImage: dataManager.isSimulationRunning ? "stop.fill" : "play.fill")
-                                    .font(.caption.bold())
-                                    .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.bordered)
-                            .tint(.orange)
                         }
+
+                        // 开始 / 停止飞行记录大按钮
+                        Button {
+                            if dataManager.isRecording {
+                                dataManager.stopFlightRecording()
+                            } else {
+                                dataManager.startFlightRecording()
+                            }
+                        } label: {
+                            Label(dataManager.isRecording ? "停止并保存飞行记录" : "开始全航程飞行记录 (后台保活)", systemImage: dataManager.isRecording ? "stop.circle.fill" : "record.circle.fill")
+                                .font(.headline.bold())
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 6)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(dataManager.isRecording ? .red : .blue)
                     }
+                    .padding()
+                    .background(Color(.systemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
                     .padding(.horizontal)
 
                     // 2. 航空主飞行仪表 (PFD Artificial Horizon)
                     ZStack {
                         RoundedRectangle(cornerRadius: 16)
-                            .fill(Color(red: 0.06, green: 0.08, blue: 0.12))
+                            .fill(Color(red: 0.05, green: 0.07, blue: 0.11))
                             .frame(height: 190)
 
                         GeometryReader { geo in
                             ZStack {
-                                // 天空蓝与大地棕
+                                // 天空与地面分界
                                 VStack(spacing: 0) {
-                                    Rectangle().fill(Color(red: 0.12, green: 0.38, blue: 0.68))
-                                    Rectangle().fill(Color(red: 0.42, green: 0.28, blue: 0.15))
+                                    Rectangle().fill(Color(red: 0.10, green: 0.35, blue: 0.65))
+                                    Rectangle().fill(Color(red: 0.40, green: 0.26, blue: 0.15))
                                 }
                                 .frame(width: geo.size.width * 2.2, height: geo.size.height * 2.2)
-                                // 俯仰角平移 (每度 3.2 像素)
                                 .offset(y: CGFloat(dataManager.pitchDeg * 3.2))
-                                // 滚转角旋转
                                 .rotationEffect(.degrees(-dataManager.rollDeg))
 
-                                // 水平俯仰刻度标尺 (Pitch Ladder)
+                                // 俯仰刻度梯尺 (Pitch Ladder)
                                 VStack(spacing: 16) {
                                     ForEach([-20, -10, 0, 10, 20], id: \.self) { deg in
                                         HStack {
@@ -101,7 +94,7 @@ public struct AvionicsTelemetryView: View {
                                 .offset(y: CGFloat(dataManager.pitchDeg * 3.2))
                                 .rotationEffect(.degrees(-dataManager.rollDeg))
 
-                                // 机体固定准星十字 (Aircraft Symbol)
+                                // 固定准星十字
                                 Image(systemName: "plus")
                                     .font(.system(size: 26, weight: .heavy))
                                     .foregroundStyle(.yellow)
@@ -110,7 +103,7 @@ public struct AvionicsTelemetryView: View {
                         }
                         .frame(height: 190)
 
-                        // 仪表角标数值 (实时 Pitch / Roll)
+                        // 仪表角标数值
                         VStack {
                             HStack {
                                 Text("PITCH: \(String(format: "%+.1f°", dataManager.pitchDeg))")
@@ -133,23 +126,14 @@ public struct AvionicsTelemetryView: View {
                     }
                     .padding(.horizontal)
 
-                    // 3. “双高”与客舱增压系统看板 (核心解耦模型)
+                    // 3. 真实“双高”与客舱增压系统看板
                     VStack(alignment: .leading, spacing: 10) {
-                        HStack {
-                            Text("高度解耦与客舱增压系统")
-                                .font(.headline)
-                            Spacer()
-                            Button {
-                                showCalibrationDialog = true
-                            } label: {
-                                Label("机体轴校准", systemImage: "gyroscope")
-                                    .font(.caption2.bold())
-                            }
-                        }
+                        Text("双高系统与客舱增压监测")
+                            .font(.headline)
 
                         HStack(spacing: 12) {
-                            // 真实几何飞行高度 (GNSS)
-                            AvionicsMetricBox(
+                            // 真实几何高度 (GNSS)
+                            AvionicsRealMetricBox(
                                 title: "飞机真实高度 (GNSS)",
                                 value: "\(Int(dataManager.geometricAltitudeFt))",
                                 unit: "FT",
@@ -158,7 +142,7 @@ public struct AvionicsTelemetryView: View {
                             )
 
                             // 客舱等效高度 (iPhone 气压计)
-                            AvionicsMetricBox(
+                            AvionicsRealMetricBox(
                                 title: "客舱等效高度 (Cabin)",
                                 value: "\(Int(dataManager.cabinAltitudeFt))",
                                 unit: "FT",
@@ -172,30 +156,30 @@ public struct AvionicsTelemetryView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 14))
                     .padding(.horizontal)
 
-                    // 4. 过载 Nz/Nx 与晴空颠簸 EDR 看板
+                    // 4. 真实过载与颠簸强度
                     HStack(spacing: 12) {
-                        AvionicsMetricBox(
+                        AvionicsRealMetricBox(
                             title: "垂直过载 Nz",
                             value: String(format: "%.2fg", dataManager.normalGForce),
                             unit: "",
-                            subtitle: dataManager.normalGForce > 1.25 ? "抬头/机动中" : "平飞巡航",
+                            subtitle: dataManager.normalGForce > 1.25 ? "抬头/机动" : "平飞恒定",
                             color: .purple
                         )
-                        AvionicsMetricBox(
-                            title: "纵向推力/刹车 Nx",
+                        AvionicsRealMetricBox(
+                            title: "纵向过载 Nx",
                             value: String(format: "%+.2fg", dataManager.longitudinalGForce),
                             unit: "",
-                            subtitle: dataManager.longitudinalGForce > 0.2 ? "起飞推背加速" : "巡航阻力平衡",
+                            subtitle: dataManager.longitudinalGForce > 0.15 ? "推力加速" : "匀速巡航",
                             color: .teal
                         )
                     }
                     .padding(.horizontal)
 
-                    // 5. 接地触地质量报告 (如果产生)
+                    // 5. 接地触地质量报告 (真实触地时显示)
                     if let touchdown = dataManager.latestTouchdown {
                         VStack(alignment: .leading, spacing: 6) {
                             HStack {
-                                Label("着陆触地力学分析报告 (Touchdown)", systemImage: "checkmark.seal.fill")
+                                Label("着陆触地力学分析 (Touchdown)", systemImage: "checkmark.seal.fill")
                                     .font(.subheadline.bold())
                                     .foregroundStyle(.green)
                                 Spacer()
@@ -207,7 +191,7 @@ public struct AvionicsTelemetryView: View {
                                     .foregroundStyle(.green)
                                     .clipShape(Capsule())
                             }
-                            Text("接地过载峰值: \(String(format: "%.2f", touchdown.touchdownG)) g · 触地垂直下沉率: \(String(format: "%.0f", touchdown.sinkRateFpm)) FPM")
+                            Text("接地峰值过载: \(String(format: "%.2f", touchdown.touchdownG)) g · 下沉率: \(String(format: "%.0f", touchdown.sinkRateFpm)) FPM")
                                 .font(.caption.monospaced())
                         }
                         .padding()
@@ -216,16 +200,23 @@ public struct AvionicsTelemetryView: View {
                         .padding(.horizontal)
                     }
 
-                    // 6. 真实历史图表：双高剖面走势
+                    // 6. 飞行全程高度剖面走势 (真实黑匣子采样点)
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("全航程双高剖面走势 (真实 vs 客舱)")
+                        Text("全航程双高走势 (真实高 vs 客舱高)")
                             .font(.headline)
 
                         if dataManager.telemetryHistory.isEmpty {
-                            Text("等待数据点累积中...")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .frame(height: 140)
+                            VStack(spacing: 6) {
+                                Image(systemName: "chart.xyaxis.line")
+                                    .font(.largeTitle)
+                                    .foregroundStyle(.secondary)
+                                Text("点击上方“开始全航程飞行记录”，即刻按高频时序采样并绘制真实飞行剖面。")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .multilineTextAlignment(.center)
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 120)
+                            .padding()
                         } else {
                             Chart {
                                 ForEach(Array(dataManager.telemetryHistory.enumerated()), id: \.offset) { index, point in
@@ -252,66 +243,41 @@ public struct AvionicsTelemetryView: View {
                     .background(Color(.systemBackground))
                     .clipShape(RoundedRectangle(cornerRadius: 14))
                     .padding(.horizontal)
-
-                    // 7. 垂直过载 G 值波动走势图
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("垂直过载 G 波动曲线")
-                            .font(.headline)
-
-                        if dataManager.telemetryHistory.isEmpty {
-                            Text("等待数据点累积中...")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .frame(height: 120)
-                        } else {
-                            Chart {
-                                ForEach(Array(dataManager.telemetryHistory.enumerated()), id: \.offset) { index, point in
-                                    LineMark(
-                                        x: .value("Frame", index),
-                                        y: .value("G-Force", point.normalGForce)
-                                    )
-                                    .foregroundStyle(.purple)
-                                }
-                            }
-                            .frame(height: 120)
-                        }
-                    }
-                    .padding()
-                    .background(Color(.systemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
-                    .padding(.horizontal)
                 }
                 .padding(.vertical)
             }
             .navigationTitle("飞行数据与惯导")
             .background(Color(.systemGroupedBackground))
             .alert("机体轴正交对准校准", isPresented: $showCalibrationDialog) {
-                Button("确定校准") {
-                    // 执行机体轴校准
+                Button("对准机头并校准") {
+                    dataManager.calibrateBodyAxis()
+                }
+                Button("恢复默认零位") {
+                    dataManager.resetBodyCalibration()
                 }
                 Button("取消", role: .cancel) {}
             } message: {
-                Text("请将手机固定在前排座椅网兜或小桌板。校准算法将利用滑跑加速推力与重力正交投影，消除手机摆放倾角。")
+                Text("请将手机固定在前排座椅网兜或小桌板。校准算法将利用滑跑直线加速推力与重力正交投影，消除手机倾角，使姿态仪完全契合飞机机体。")
             }
         }
     }
 
     private func flightPhaseTitle(_ phase: FlightPhase) -> String {
         switch phase {
-        case .parked: return "停机坪静止"
-        case .taxi: return "滑行道滑行"
-        case .takeoffRoll: return "起飞滑跑 (推背加速)"
-        case .initialClimb: return "抬轮离地爬升"
-        case .cruise: return "高空巡航平飞"
-        case .descent: return "下降阶段"
-        case .approach: return "进近对正五边"
-        case .touchdown: return "主轮接地瞬间"
-        case .landingRoll: return "着陆刹车滑跑"
+        case .parked: return "地面就绪"
+        case .taxi: return "滑行中"
+        case .takeoffRoll: return "起飞滑跑 (加速)"
+        case .initialClimb: return "离地爬升"
+        case .cruise: return "高空巡航"
+        case .descent: return "下降进近"
+        case .approach: return "进近对正"
+        case .touchdown: return "主轮接地"
+        case .landingRoll: return "着陆减速滑跑"
         }
     }
 }
 
-struct AvionicsMetricBox: View {
+struct AvionicsRealMetricBox: View {
     let title: String
     let value: String
     let unit: String

@@ -17,9 +17,10 @@ public final class BackgroundFlightTracker: NSObject, CLLocationManagerDelegate,
     #endif
 
     public private(set) var isTracking: Bool = false
+    public private(set) var isHardwareSensorsActive: Bool = false
     public private(set) var currentPhase: FlightPhase = .parked
     
-    // 真实传感器数据回调钩子 (供 FlightDataManager 实时驱动)
+    // 真实硬件传感器数据回调钩子 (供 FlightDataManager 实时驱动)
     public var onLocationUpdate: (@Sendable (CLLocation, FlightPhase) -> Void)?
     public var onMotionUpdate: (@Sendable (simd_double3, simd_double3, Double, Double, Double) -> Void)?
     public var onPressureUpdate: (@Sendable (Double) -> Void)?
@@ -34,50 +35,64 @@ public final class BackgroundFlightTracker: NSObject, CLLocationManagerDelegate,
         locationManager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
         locationManager.distanceFilter = kCLDistanceFilterNone
         #if os(iOS)
-        // 关键航空配置：通知基带芯片针对几百节高速多普勒频移进行特殊平滑
+        // 关键航空配置：通知基带芯片针对高速多普勒频移进行平滑
         locationManager.activityType = .airborne
-        // 致命关键配置：强制禁止 iOS 静止自动暂停，长途平飞绝不挂起
         locationManager.pausesLocationUpdatesAutomatically = false
-        // 开启后台持续定位
-        locationManager.allowsBackgroundLocationUpdates = true
-        locationManager.showsBackgroundLocationIndicator = true
         #endif
     }
 
-    /// 开始飞行全程黑匣子记录
-    public func startTracking() {
-        guard !isTracking else { return }
-        isTracking = true
-        
-        #if os(iOS)
-        locationManager.requestAlwaysAuthorization()
-        #endif
+    /// 启动实时传感器常驻监听 (前台即时感知)
+    public func startLiveSensors() {
+        guard !isHardwareSensorsActive else { return }
+        isHardwareSensorsActive = true
+
+        locationManager.requestWhenInUseAuthorization()
         locationManager.startUpdatingLocation()
         #if os(iOS)
         locationManager.startUpdatingHeading()
-        startSensors()
+        startMotionAndAltimeter(highRate: false)
         #endif
     }
 
-    /// 停止记录并生成航程报告
-    public func stopTracking() {
+    /// 开始长航时后台黑匣子记录 (升级为后台保活模式)
+    public func startBackgroundTracking() {
+        guard !isTracking else { return }
+        isTracking = true
+
+        #if os(iOS)
+        locationManager.requestAlwaysAuthorization()
+        // 仅在明确开启飞行记录时配置后台保活，防止冷启动由于未授权发生底层卡顿
+        let hasBackgroundMode = Bundle.main.object(forInfoDictionaryKey: "UIBackgroundModes") != nil
+        if hasBackgroundMode {
+            locationManager.allowsBackgroundLocationUpdates = true
+            locationManager.showsBackgroundLocationIndicator = true
+        }
+        #endif
+
+        locationManager.startUpdatingLocation()
+        #if os(iOS)
+        locationManager.startUpdatingHeading()
+        startMotionAndAltimeter(highRate: true)
+        #endif
+    }
+
+    /// 停止后台黑匣子记录
+    public func stopBackgroundTracking() {
         guard isTracking else { return }
         isTracking = false
-        
-        locationManager.stopUpdatingLocation()
+
         #if os(iOS)
-        locationManager.stopUpdatingHeading()
-        motionManager.stopDeviceMotionUpdates()
-        motionManager.stopAccelerometerUpdates()
-        altimeter.stopRelativeAltitudeUpdates()
+        locationManager.allowsBackgroundLocationUpdates = false
+        locationManager.showsBackgroundLocationIndicator = false
+        // 保持基础前台采样，仅降低刷新率以节电
+        startMotionAndAltimeter(highRate: false)
         #endif
     }
 
     #if os(iOS)
-    private func startSensors() {
-        // 根据阶段自适应配置采样率
-        let sampleRateHz: Double = (currentPhase == .takeoffRoll || currentPhase == .approach || currentPhase == .touchdown) ? 50.0 : 10.0
-        
+    private func startMotionAndAltimeter(highRate: Bool) {
+        let sampleRateHz: Double = highRate ? 50.0 : 15.0
+
         if motionManager.isDeviceMotionAvailable {
             motionManager.deviceMotionUpdateInterval = 1.0 / sampleRateHz
             motionManager.startDeviceMotionUpdates(to: .main) { [weak self] motion, error in
@@ -122,10 +137,10 @@ public final class BackgroundFlightTracker: NSObject, CLLocationManagerDelegate,
 
     public func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let latest = locations.last else { return }
-        
+
         let speedKts = max(0, latest.speed * 1.94384)
         let altitudeFt = latest.altitude * 3.28084
-        
+
         updateFlightPhase(speedKts: speedKts, altitudeFt: altitudeFt)
         onLocationUpdate?(latest, currentPhase)
     }

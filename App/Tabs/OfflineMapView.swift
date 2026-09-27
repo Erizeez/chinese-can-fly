@@ -2,38 +2,41 @@ import SwiftUI
 import MapKit
 import CCFlyCore
 
-/// 离线地图与机场跑道视图 (基于 MapKit 原生离线渲染与真实 779 座机场数据库)
+/// 离线地图与跑道对正视图 (极速冷启动渲染，无白屏无卡顿)
 public struct OfflineMapView: View {
     @State private var dataManager = FlightDataManager.shared
-    @State private var allAirports: [Airport] = []
     @State private var selectedAirport: Airport? = nil
     @State private var searchQuery: String = ""
+    @State private var searchResults: [Airport] = []
     @State private var mapPosition: MapCameraPosition = .automatic
+
+    // 默认精选干线机场列表 (快速离线展示，不占用首屏地图负载)
+    private let quickAirports: [Airport] = AirportRepository.shared.getAllAirports()
 
     public init() {}
 
     public var body: some View {
         NavigationStack {
             ZStack(alignment: .bottom) {
-                // 1. 真实地图视图
+                // 1. 真实地图视图 (轻量极速渲染)
                 Map(position: $mapPosition) {
-                    // 标记当前飞机实时位置
+                    // 当前飞机物理位置标注 (带真航向箭头)
                     Annotation("当前飞机位置", coordinate: CLLocationCoordinate2D(latitude: dataManager.latitude, longitude: dataManager.longitude)) {
                         ZStack {
                             Circle()
-                                .fill(Color.blue.opacity(0.3))
-                                .frame(width: 44, height: 44)
+                                .fill(Color.blue.opacity(0.25))
+                                .frame(width: 42, height: 42)
                             Image(systemName: "airplane")
                                 .font(.system(size: 20, weight: .bold))
                                 .foregroundStyle(.white)
-                                .padding(8)
+                                .padding(7)
                                 .background(Color.blue)
                                 .clipShape(Circle())
                                 .rotationEffect(.degrees(dataManager.groundTrackDeg - 90))
                         }
                     }
 
-                    // 标记当前航班的大圆航线
+                    // 当前选中航班的大圆航线折线
                     if let flight = dataManager.currentFlight {
                         let dep = AirportRepository.shared.findAirport(code: flight.departureIATA)
                         let arr = AirportRepository.shared.findAirport(code: flight.arrivalIATA)
@@ -42,7 +45,7 @@ public struct OfflineMapView: View {
                             lon1: dep?.longitude ?? 116.4,
                             lat2: arr?.latitude ?? 31.2,
                             lon2: arr?.longitude ?? 121.4,
-                            count: 25
+                            count: 20
                         )
                         let coords = waypoints.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
 
@@ -50,8 +53,8 @@ public struct OfflineMapView: View {
                             .stroke(.cyan, lineWidth: 3)
                     }
 
-                    // 标记全国主要机场点位 (展示前 40 个或搜索匹配的机场)
-                    ForEach(filteredAirports.prefix(40)) { airport in
+                    // 聚焦选中的机场与跑道头标记
+                    if let airport = selectedAirport {
                         Marker(airport.iata.isEmpty ? airport.icao : airport.iata, coordinate: CLLocationCoordinate2D(latitude: airport.latitude, longitude: airport.longitude))
                             .tint(.orange)
                     }
@@ -59,17 +62,21 @@ public struct OfflineMapView: View {
                 .mapStyle(.standard(elevation: .realistic))
                 .ignoresSafeArea(edges: .top)
 
-                // 2. 悬浮底栏：机场跑道快速检索与详情面板
-                VStack(spacing: 10) {
-                    // 搜索框
+                // 2. 悬浮底栏：机场搜索与跑道几何详情
+                VStack(spacing: 8) {
+                    // 快速搜索栏
                     HStack {
                         Image(systemName: "magnifyingglass")
                             .foregroundStyle(.secondary)
-                        TextField("搜索全国 779 座机场/跑道 (如 首都, 虹桥, ZBAA)", text: $searchQuery)
+                        TextField("离线检索机场 (如 首都, 虹桥, ZBAA, PEK)", text: $searchQuery)
                             .textFieldStyle(.plain)
+                            .onChange(of: searchQuery) { _, query in
+                                updateSearch(query: query)
+                            }
                         if !searchQuery.isEmpty {
                             Button {
                                 searchQuery = ""
+                                updateSearch(query: "")
                             } label: {
                                 Image(systemName: "xmark.circle.fill")
                                     .foregroundStyle(.secondary)
@@ -80,16 +87,17 @@ public struct OfflineMapView: View {
                     .background(Color(.secondarySystemBackground))
                     .clipShape(RoundedRectangle(cornerRadius: 10))
 
-                    // 水平机场滚动卡片
+                    // 机场横向滚动卡片
                     ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
-                            ForEach(filteredAirports.prefix(15)) { airport in
+                        HStack(spacing: 10) {
+                            let displayList = searchQuery.isEmpty ? Array(quickAirports.prefix(12)) : searchResults
+                            ForEach(displayList) { airport in
                                 Button {
                                     self.selectedAirport = airport
-                                    withAnimation {
+                                    withAnimation(.easeInOut(duration: 0.5)) {
                                         self.mapPosition = .region(MKCoordinateRegion(
                                             center: CLLocationCoordinate2D(latitude: airport.latitude, longitude: airport.longitude),
-                                            span: MKCoordinateSpan(latitudeDelta: 0.15, longitudeDelta: 0.15)
+                                            span: MKCoordinateSpan(latitudeDelta: 0.12, longitudeDelta: 0.12)
                                         ))
                                     }
                                 } label: {
@@ -97,23 +105,23 @@ public struct OfflineMapView: View {
                                         HStack {
                                             Text(airport.iata.isEmpty ? airport.icao : airport.iata)
                                                 .font(.headline.monospaced())
-                                                .foregroundStyle(.blue)
+                                                .foregroundStyle(selectedAirport?.ident == airport.ident ? .white : .blue)
                                             Spacer()
                                             Text("\(airport.runways.count) 跑道")
                                                 .font(.caption2)
-                                                .foregroundStyle(.secondary)
+                                                .foregroundStyle(selectedAirport?.ident == airport.ident ? .white.opacity(0.8) : .secondary)
                                         }
                                         Text(airport.name)
                                             .font(.caption)
                                             .lineLimit(1)
-                                            .foregroundStyle(.primary)
+                                            .foregroundStyle(selectedAirport?.ident == airport.ident ? .white : .primary)
                                         Text("标高: \(Int(airport.elevationFt ?? 0)) ft · \(airport.municipality)")
                                             .font(.caption2)
-                                            .foregroundStyle(.secondary)
+                                            .foregroundStyle(selectedAirport?.ident == airport.ident ? .white.opacity(0.8) : .secondary)
                                     }
-                                    .frame(width: 170)
-                                    .padding(10)
-                                    .background(Color(.secondarySystemBackground))
+                                    .frame(width: 165)
+                                    .padding(9)
+                                    .background(selectedAirport?.ident == airport.ident ? Color.blue : Color(.secondarySystemBackground))
                                     .clipShape(RoundedRectangle(cornerRadius: 10))
                                 }
                             }
@@ -127,20 +135,17 @@ public struct OfflineMapView: View {
             }
             .navigationTitle("离线地图与跑道")
             .navigationBarTitleDisplayMode(.inline)
-            .onAppear {
-                self.allAirports = AirportRepository.shared.getAllAirports()
-            }
             .sheet(item: $selectedAirport) { airport in
                 AirportRunwayDetailSheet(airport: airport)
             }
         }
     }
 
-    private var filteredAirports: [Airport] {
-        if searchQuery.isEmpty {
-            return allAirports
+    private func updateSearch(query: String) {
+        if query.isEmpty {
+            searchResults = []
         } else {
-            return AirportRepository.shared.searchAirports(query: searchQuery)
+            searchResults = AirportRepository.shared.searchAirports(query: query)
         }
     }
 }
@@ -218,3 +223,4 @@ struct AirportRunwayDetailSheet: View {
         }
     }
 }
+

@@ -1,48 +1,48 @@
 import SwiftUI
 import CoreLocation
+import simd
 #if os(iOS)
 import CoreMotion
 #endif
 import CCFlyCore
 
-/// 全局飞行数据中枢与状态调度器
+/// 全局飞行数据中枢与状态调度器 (纯实战硬件驱动，零假数据演练)
 @Observable
 public final class FlightDataManager: @unchecked Sendable {
     public static let shared = FlightDataManager()
 
-    // MARK: - 核心态势变量 (全面驱动 UI)
+    // MARK: - 核心态势变量 (真实硬件传感器驱动)
     public var currentFlight: FlightPlan?
     public var activeFlightState: AirborneState?
     public var isRecording: Bool = false
-    public var isSimulationRunning: Bool = false
 
     // 空间定位与地速
-    public var latitude: Double = 39.5098        // 默认北京大兴 (PKX)
+    public var latitude: Double = 39.5098
     public var longitude: Double = 116.4105
-    public var geometricAltitudeFt: Double = 116.0
+    public var geometricAltitudeFt: Double = 0.0
     public var groundSpeedKts: Double = 0.0
-    public var groundTrackDeg: Double = 18.0
+    public var groundTrackDeg: Double = 0.0
 
-    // 气压与客舱增压 (双高系统)
+    // 气压与客舱增压 (真实双高系统)
     public var ambientPressureHPa: Double = 1013.25
-    public var cabinAltitudeFt: Double = 116.0
+    public var cabinAltitudeFt: Double = 0.0
     public var cabinVSIFpm: Double = 0.0
 
-    // 姿态仪与力学过载 (机体坐标系)
+    // 姿态仪与力学过载 (已对准至机体坐标系)
     public var pitchDeg: Double = 0.0
     public var rollDeg: Double = 0.0
     public var normalGForce: Double = 1.0        // 垂直过载 Nz
     public var longitudinalGForce: Double = 0.0  // 纵向过载 Nx
     public var lateralGForce: Double = 0.0       // 侧向过载 Ny
-    public var turbulenceEDR: Double = 0.02
+    public var turbulenceEDR: Double = 0.0
     public var flightPhase: FlightPhase = .parked
 
-    // 触地着陆报告
+    // 着陆触地冲击质量报告
     public var latestTouchdown: TouchdownReport?
 
     // 遥测时序历史队列 (环形缓冲区，供图表与黑匣子导出)
     public var telemetryHistory: [TelemetryFrame] = []
-    private let maxHistoryFrames = 500
+    private let maxHistoryFrames = 1000
 
     // 核心算法与分析器引用
     private let cabinAnalyzer = CabinAltitudeAnalyzer()
@@ -50,24 +50,24 @@ public final class FlightDataManager: @unchecked Sendable {
     private let bodyAligner = BodyFrameAligner()
     private let ekfEngine = EKFNavEngine()
 
-    // 仿真定时器
-    private var simTimer: Timer?
-    private var simStep: Double = 0.0
+    // 缓存上一次采样的重力与加速度矢量 (用于机体轴校准)
+    private var lastRawGravity: simd_double3 = simd_double3(0, -9.80665, 0)
+    private var lastRawAcceleration: simd_double3 = .zero
 
     private init() {
-        // 默认加载国内经典干线 CA1501 航线
+        // 默认载入干线代表航班
         self.currentFlight = OfflineFlightDatabase.shared.lookupFlight(callsign: "CA1501")
         setupSensorCallbacks()
-        // 初始填充若干点
-        appendCurrentTelemetryFrame()
+        // 启动真实传感器常驻前台感知 (开机即感知，绝无阻塞)
+        BackgroundFlightTracker.shared.startLiveSensors()
     }
 
     private func setupSensorCallbacks() {
         let tracker = BackgroundFlightTracker.shared
-        
+
         tracker.onLocationUpdate = { [weak self] location, phase in
             Task { @MainActor in
-                guard let self = self, !self.isSimulationRunning else { return }
+                guard let self = self else { return }
                 self.latitude = location.coordinate.latitude
                 self.longitude = location.coordinate.longitude
                 self.geometricAltitudeFt = location.altitude * 3.28084
@@ -76,27 +76,57 @@ public final class FlightDataManager: @unchecked Sendable {
                     self.groundTrackDeg = location.course
                 }
                 self.flightPhase = phase
-                self.appendCurrentTelemetryFrame()
+
+                // 仅在明确开启飞行记录时写入黑匣子持久队列
+                if self.isRecording {
+                    self.appendCurrentTelemetryFrame()
+                }
             }
         }
 
         tracker.onMotionUpdate = { [weak self] acc, grav, pitch, roll, yaw in
             Task { @MainActor in
-                guard let self = self, !self.isSimulationRunning else { return }
-                self.pitchDeg = pitch
-                self.rollDeg = roll
-                let (nx, ny, nz) = self.bodyAligner.transformAcceleration(sensorAcc: acc + grav)
-                self.normalGForce = nz
-                self.longitudinalGForce = nx
-                self.lateralGForce = ny
-                self.dynamicsAnalyzer.processSample(normalG: nz, sinkRateFpm: -self.cabinVSIFpm)
+                guard let self = self else { return }
+                self.lastRawAcceleration = acc
+                self.lastRawGravity = grav
+
+                // 如果已对准，则使用机体变换后的俯仰滚转与过载；未对准时直接使用自然姿态
+                if self.bodyAligner.calibrated {
+                    let (p, r) = self.bodyAligner.calculateAttitudeAngles(sensorGravity: grav)
+                    self.pitchDeg = p
+                    self.rollDeg = r
+                    let (nx, ny, nz) = self.bodyAligner.transformAcceleration(sensorAcc: acc + grav)
+                    self.normalGForce = nz
+                    self.longitudinalGForce = nx
+                    self.lateralGForce = ny
+                } else {
+                    self.pitchDeg = pitch
+                    self.rollDeg = roll
+                    self.normalGForce = sqrt(grav.x * grav.x + grav.y * grav.y + grav.z * grav.z) / 9.80665
+                    self.longitudinalGForce = acc.z / 9.80665
+                    self.lateralGForce = acc.x / 9.80665
+                }
+
+                self.dynamicsAnalyzer.processSample(normalG: self.normalGForce, sinkRateFpm: -self.cabinVSIFpm)
                 self.turbulenceEDR = self.dynamicsAnalyzer.calculateTurbulenceEDR()
+
+                // 检测是否刚刚发生着陆接地冲击
+                if self.flightPhase == .touchdown && self.latestTouchdown == nil {
+                    self.latestTouchdown = self.dynamicsAnalyzer.evaluateTouchdown(
+                        peakNormalG: self.normalGForce,
+                        touchdownSinkRateFpm: -self.cabinVSIFpm
+                    )
+                }
+
+                if self.isRecording && self.telemetryHistory.count % 5 == 0 {
+                    self.appendCurrentTelemetryFrame()
+                }
             }
         }
 
         tracker.onPressureUpdate = { [weak self] pressureHPa in
             Task { @MainActor in
-                guard let self = self, !self.isSimulationRunning else { return }
+                guard let self = self else { return }
                 self.ambientPressureHPa = pressureHPa
                 let (cabinAlt, vsi) = self.cabinAnalyzer.update(pressureHPa: pressureHPa)
                 self.cabinAltitudeFt = cabinAlt
@@ -105,156 +135,34 @@ public final class FlightDataManager: @unchecked Sendable {
         }
     }
 
-    // MARK: - 真实传感器硬件接入与启停
+    // MARK: - 真实飞行实战操作
 
-    public func startLiveBlackbox() {
+    /// 开始飞行全程黑匣子记录 (升级为长航时后台保活与 50Hz 采样)
+    public func startFlightRecording() {
         guard !isRecording else { return }
         isRecording = true
-        BackgroundFlightTracker.shared.startTracking()
+        latestTouchdown = nil
+        telemetryHistory.removeAll()
+        BackgroundFlightTracker.shared.startBackgroundTracking()
+        appendCurrentTelemetryFrame()
     }
 
-    public func stopLiveBlackbox() {
+    /// 停止飞行记录并保持基础传感器监听
+    public func stopFlightRecording() {
         guard isRecording else { return }
         isRecording = false
-        BackgroundFlightTracker.shared.stopTracking()
-        if isSimulationRunning {
-            stopFlightSimulation()
-        }
+        BackgroundFlightTracker.shared.stopBackgroundTracking()
     }
 
-    // MARK: - 高保真航空物理力学仿真引擎 (供非机舱 / 模拟器环境测试)
-
-    /// 启动从北京大兴 (PKX) 至 广州白云 (CAN) 的真实航空飞行力学仿真
-    public func startFlightSimulation() {
-        stopFlightSimulation()
-        isSimulationRunning = true
-        isRecording = true
-        simStep = 0.0
-        telemetryHistory.removeAll()
-
-        // 设定初始起点：大兴 01L 跑道头
-        latitude = 39.4950
-        longitude = 116.4100
-        geometricAltitudeFt = 116.0
-        cabinAltitudeFt = 116.0
-        ambientPressureHPa = 1008.0
-        groundSpeedKts = 0.0
-        groundTrackDeg = 10.0
-        flightPhase = .parked
-
-        simTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
-            self?.advanceSimulationTick()
-        }
+    /// 执行机体轴正交对准 (消除手机在客舱内任意放置的倾角)
+    public func calibrateBodyAxis() {
+        // 利用滑跑推力和重力对准
+        let thrust = (simd_length(lastRawAcceleration) > 0.05) ? lastRawAcceleration : simd_double3(0, 0, 1.0)
+        bodyAligner.calibrate(gravitySensor: lastRawGravity, forwardAccSensor: thrust)
     }
 
-    public func stopFlightSimulation() {
-        simTimer?.invalidate()
-        simTimer = nil
-        isSimulationRunning = false
-    }
-
-    private func advanceSimulationTick() {
-        simStep += 0.5
-        let t = simStep
-
-        // 真实多阶段飞行剖面演进
-        if t < 10.0 {
-            // 阶段 1: 停机坪与滑行
-            flightPhase = .taxi
-            groundSpeedKts = min(25.0, t * 2.5)
-            longitudinalGForce = 0.05
-            normalGForce = 1.0 + Double.random(in: -0.02...0.02)
-            pitchDeg = 0.5
-            rollDeg = 0.0
-        } else if t < 25.0 {
-            // 阶段 2: 起飞滑跑 (Takeoff Roll) - 强力推背感
-            flightPhase = .takeoffRoll
-            let rollProgress = (t - 10.0) / 15.0
-            groundSpeedKts = 25.0 + rollProgress * 135.0 // 加速至 160 节
-            longitudinalGForce = 0.32 + Double.random(in: -0.03...0.03) // 0.32G 纵向推力
-            normalGForce = 1.02 + Double.random(in: -0.04...0.04)
-            pitchDeg = 1.0
-        } else if t < 35.0 {
-            // 阶段 3: 抬轮离地 (Rotation) - 抬头拉杆过载
-            flightPhase = .initialClimb
-            groundSpeedKts = 160.0 + (t - 25.0) * 5.0
-            longitudinalGForce = 0.15
-            normalGForce = 1.22 + Double.random(in: -0.02...0.03) // 1.22G 拉起垂直过载！
-            pitchDeg = min(15.0, 1.0 + (t - 25.0) * 1.4) // 抬头角拉升至 15 度
-            geometricAltitudeFt += 180.0 // 剧烈爬升
-            cabinAltitudeFt += 20.0
-            cabinVSIFpm = 450.0
-            ambientPressureHPa = ISAAtmosphere.pressureFromAltitude(meters: geometricAltitudeFt * 0.3048)
-        } else if t < 70.0 {
-            // 阶段 4: 爬升与客舱阶梯增压
-            flightPhase = .cruise
-            groundSpeedKts = min(480.0, 210.0 + (t - 35.0) * 8.0)
-            geometricAltitudeFt = min(35000.0, geometricAltitudeFt + 600.0)
-            // 客舱增压规律: 飞机爬升至 35000ft，客舱平缓加压升至 6800ft
-            cabinAltitudeFt = min(6800.0, cabinAltitudeFt + 100.0)
-            ambientPressureHPa = ISAAtmosphere.pressureFromAltitude(meters: cabinAltitudeFt * 0.3048)
-            cabinVSIFpm = 380.0
-            pitchDeg = 3.5
-            rollDeg = sin(t * 0.2) * 3.0
-            normalGForce = 1.0 + Double.random(in: -0.05...0.05)
-            longitudinalGForce = 0.02
-        } else if t < 100.0 {
-            // 阶段 5: 高空巡航与晴空颠簸
-            flightPhase = .cruise
-            geometricAltitudeFt = 35000.0 + sin(t * 0.1) * 30.0
-            cabinAltitudeFt = 6800.0 // 恒定客舱气压
-            cabinVSIFpm = 0.0
-            groundSpeedKts = 475.0 + Double.random(in: -5...5)
-            // 模拟遭遇轻度湍流 EDR
-            let bump = sin(t * 1.5) * 0.14
-            normalGForce = 1.0 + bump
-            turbulenceEDR = 0.18 // 轻度颠簸
-            pitchDeg = 2.0
-            rollDeg = cos(t * 0.15) * 4.0
-        } else if t < 130.0 {
-            // 阶段 6: 进近下滑 (Approach)
-            flightPhase = .approach
-            geometricAltitudeFt = max(200.0, geometricAltitudeFt - 1100.0)
-            cabinAltitudeFt = max(200.0, cabinAltitudeFt - 220.0)
-            cabinVSIFpm = -750.0
-            groundSpeedKts = max(140.0, groundSpeedKts - 10.0)
-            pitchDeg = 1.5
-            rollDeg = sin(t * 0.5) * 2.0
-            normalGForce = 1.02
-            turbulenceEDR = 0.05
-        } else if t < 135.0 {
-            // 阶段 7: 接地触地冲击瞬间 (Touchdown!)
-            flightPhase = .touchdown
-            geometricAltitudeFt = 50.0
-            groundSpeedKts = 135.0
-            pitchDeg = 4.0 // 仰头拉平接地
-            normalGForce = 1.28 // 1.28G 黄油接地！
-            longitudinalGForce = -0.35 // 反推与主轮刹车减速
-
-            if latestTouchdown == nil {
-                latestTouchdown = dynamicsAnalyzer.evaluateTouchdown(peakNormalG: 1.28, touchdownSinkRateFpm: -140.0)
-            }
-        } else {
-            // 阶段 8: 脱离跑道滑行至停机位
-            flightPhase = .landingRoll
-            groundSpeedKts = max(0.0, groundSpeedKts - 8.0)
-            longitudinalGForce = -0.15
-            normalGForce = 1.0
-            pitchDeg = 0.0
-            rollDeg = 0.0
-            if groundSpeedKts <= 0.0 {
-                flightPhase = .parked
-                stopFlightSimulation()
-            }
-        }
-
-        // 经纬度航向递进
-        let rad = groundTrackDeg * .pi / 180.0
-        let distStep = (groundSpeedKts * 0.5 / 3600.0) / 60.0 // 经纬度微小推进
-        latitude += cos(rad) * distStep
-        longitude += sin(rad) * distStep
-
-        appendCurrentTelemetryFrame()
+    public func resetBodyCalibration() {
+        bodyAligner.reset()
     }
 
     private func appendCurrentTelemetryFrame() {
@@ -285,7 +193,7 @@ public final class FlightDataManager: @unchecked Sendable {
         }
     }
 
-    /// 导出当前记录的黑匣子为 GPX / KML / CSV
+    /// 导出当前飞行的真实黑匣子文件 (GPX / KML / CSV)
     public func exportCurrentFlight(format: String) -> URL? {
         let callsign = currentFlight?.callsign ?? "CCFly"
         switch format.lowercased() {
