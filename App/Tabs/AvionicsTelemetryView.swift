@@ -5,6 +5,7 @@ import Charts
 /// 飞行数据与航空传感器融合 (Avionics & Telemetry) 页面 - 纯实战专业级
 public struct AvionicsTelemetryView: View {
     @State private var dataManager = FlightDataManager.shared
+    @State private var unitManager = UnitManager.shared
     @State private var showCalibrationDialog: Bool = false
 
     public init() {}
@@ -77,22 +78,27 @@ public struct AvionicsTelemetryView: View {
                         Text("双高系统与客舱增压监测")
                             .font(.headline)
 
+                        let geoAlt = unitManager.altitude(feet: dataManager.geometricAltitudeFt)
+                        let spd = unitManager.speed(knots: dataManager.groundSpeedKts)
+                        let cabinAlt = unitManager.altitude(feet: dataManager.cabinAltitudeFt)
+                        let cabinVSI = unitManager.verticalSpeed(fpm: dataManager.cabinVSIFpm)
+
                         HStack(spacing: 12) {
                             // 真实几何高度 (GNSS)
                             AvionicsRealMetricBox(
                                 title: "飞机真实高度 (GNSS)",
-                                value: "\(Int(dataManager.geometricAltitudeFt))",
-                                unit: "FT",
-                                subtitle: "真地速: \(Int(dataManager.groundSpeedKts)) KTS",
+                                value: geoAlt.value,
+                                unit: geoAlt.unit,
+                                subtitle: "真地速: \(spd.full)",
                                 color: .blue
                             )
 
                             // 客舱等效高度 (iPhone 气压计)
                             AvionicsRealMetricBox(
                                 title: "客舱等效高度 (Cabin)",
-                                value: "\(Int(dataManager.cabinAltitudeFt))",
-                                unit: "FT",
-                                subtitle: "客舱升降: \(String(format: "%+.0f", dataManager.cabinVSIFpm)) FPM",
+                                value: cabinAlt.value,
+                                unit: cabinAlt.unit,
+                                subtitle: "客舱升降: \(cabinVSI.full)",
                                 color: .orange
                             )
                         }
@@ -123,6 +129,7 @@ public struct AvionicsTelemetryView: View {
 
                     // 5. 接地触地质量报告 (真实触地时显示)
                     if let touchdown = dataManager.latestTouchdown {
+                        let sink = unitManager.verticalSpeed(fpm: touchdown.sinkRateFpm)
                         VStack(alignment: .leading, spacing: 6) {
                             HStack {
                                 Label("着陆触地力学分析 (Touchdown)", systemImage: "checkmark.seal.fill")
@@ -137,7 +144,7 @@ public struct AvionicsTelemetryView: View {
                                     .foregroundStyle(.green)
                                     .clipShape(Capsule())
                             }
-                            Text("接地峰值过载: \(String(format: "%.2f", touchdown.touchdownG)) g · 下沉率: \(String(format: "%.0f", touchdown.sinkRateFpm)) FPM")
+                            Text("接地峰值过载: \(String(format: "%.2f", touchdown.touchdownG)) g · 下沉率: \(sink.full)")
                                 .font(.caption.monospaced())
                         }
                         .padding()
@@ -164,19 +171,21 @@ public struct AvionicsTelemetryView: View {
                             .frame(maxWidth: .infinity, minHeight: 120)
                             .padding()
                         } else {
+                            let isMetric = unitManager.currentSystem == .metric
+                            let altUnit = isMetric ? "m" : "ft"
                             Chart {
                                 ForEach(Array(dataManager.telemetryHistory.enumerated()), id: \.offset) { index, point in
                                     LineMark(
                                         x: .value("Frame", index),
-                                        y: .value("Altitude", point.geometricAltitudeFt),
-                                        series: .value("Type", "真实飞行高度 (ft)")
+                                        y: .value("Altitude", isMetric ? point.geometricAltitudeFt * 0.3048 : point.geometricAltitudeFt),
+                                        series: .value("Type", "真实飞行高度 (\(altUnit))")
                                     )
                                     .foregroundStyle(.blue)
 
                                     LineMark(
                                         x: .value("Frame", index),
-                                        y: .value("Altitude", point.cabinAltitudeFt),
-                                        series: .value("Type", "客舱气压高度 (ft)")
+                                        y: .value("Altitude", isMetric ? point.cabinAltitudeFt * 0.3048 : point.cabinAltitudeFt),
+                                        series: .value("Type", "客舱气压高度 (\(altUnit))")
                                     )
                                     .foregroundStyle(.orange)
                                 }

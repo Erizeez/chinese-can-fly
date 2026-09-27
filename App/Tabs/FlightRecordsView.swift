@@ -268,6 +268,7 @@ public struct FlightRecordsView: View {
 /// 飞行记录单行卡片视图
 struct FlightRecordRowView: View {
     let record: FlightRecord
+    @State private var unitManager = UnitManager.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -309,7 +310,9 @@ struct FlightRecordRowView: View {
 
                 Spacer()
 
-                Text("FL\(Int(record.maxAltitudeFt / 100)) · \(Int(record.maxSpeedKts)) kts")
+                let fl = unitManager.flightLevel(feet: record.maxAltitudeFt)
+                let spd = unitManager.speed(knots: record.maxSpeedKts)
+                Text("\(fl) · \(spd.full)")
                     .font(.caption2.monospaced())
                     .foregroundStyle(.secondary)
             }
@@ -321,6 +324,7 @@ struct FlightRecordRowView: View {
 /// 单次航班详细力学报告与针对性导出页面
 struct FlightRecordDetailView: View {
     let record: FlightRecord
+    @State private var unitManager = UnitManager.shared
     @State private var frames: [TelemetryFrame] = []
     @State private var exportedFileURL: URL? = nil
     @State private var showShareSheet: Bool = false
@@ -382,11 +386,16 @@ struct FlightRecordDetailView: View {
                     Text("航程动力学关键指标")
                         .font(.headline)
 
+                    let alt = unitManager.altitude(feet: record.maxAltitudeFt)
+                    let spd = unitManager.speed(knots: record.maxSpeedKts)
+                    let sink = unitManager.verticalSpeed(fpm: record.touchdownSinkRateFpm ?? -120)
+                    let fl = unitManager.flightLevel(feet: record.maxAltitudeFt)
+
                     LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                        metricTile(title: "最大巡航高度", value: "\(Int(record.maxAltitudeFt)) FT", subtitle: "FL\(Int(record.maxAltitudeFt / 100))", color: .blue)
-                        metricTile(title: "最大空速/地速", value: "\(Int(record.maxSpeedKts)) KTS", subtitle: "高空平飞", color: .cyan)
+                        metricTile(title: "最大巡航高度", value: alt.full, subtitle: fl, color: .blue)
+                        metricTile(title: "最大空速/地速", value: spd.full, subtitle: "高空平飞", color: .cyan)
                         metricTile(title: "着陆垂直过载", value: String(format: "%.2f g", record.peakNormalG), subtitle: record.touchdownRating ?? "正常", color: .purple)
-                        metricTile(title: "触地下沉率", value: String(format: "%.0f FPM", record.touchdownSinkRateFpm ?? -120), subtitle: "接地瞬时", color: .orange)
+                        metricTile(title: "触地下沉率", value: sink.full, subtitle: "接地瞬时", color: .orange)
                     }
                 }
                 .padding()
@@ -399,19 +408,22 @@ struct FlightRecordDetailView: View {
                         Text("全航程双高时序剖面")
                             .font(.headline)
 
+                        let isMetric = unitManager.currentSystem == .metric
+                        let altUnit = isMetric ? "m" : "ft"
+
                         Chart {
                             ForEach(Array(frames.enumerated()), id: \.offset) { idx, f in
                                 LineMark(
                                     x: .value("Index", idx),
-                                    y: .value("Altitude", f.geometricAltitudeFt),
-                                    series: .value("Series", "真实飞行高度")
+                                    y: .value("Altitude", isMetric ? f.geometricAltitudeFt * 0.3048 : f.geometricAltitudeFt),
+                                    series: .value("Series", "真实飞行高度 (\(altUnit))")
                                 )
                                 .foregroundStyle(.blue)
 
                                 LineMark(
                                     x: .value("Index", idx),
-                                    y: .value("Altitude", f.cabinAltitudeFt),
-                                    series: .value("Series", "客舱气压高度")
+                                    y: .value("Altitude", isMetric ? f.cabinAltitudeFt * 0.3048 : f.cabinAltitudeFt),
+                                    series: .value("Series", "客舱气压高度 (\(altUnit))")
                                 )
                                 .foregroundStyle(.orange)
                             }

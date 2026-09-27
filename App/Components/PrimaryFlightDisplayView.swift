@@ -1,8 +1,11 @@
 import SwiftUI
+import CCFlyCore
 
 /// 航空专业级人工地平仪 / 主飞行仪表 (Primary Flight Display - PFD)
 /// 基于 Metal 硬件加速合成 (.drawingGroup)，丝滑 60/120fps 真实飞机视角
 public struct PrimaryFlightDisplayView: View {
+    @State private var unitManager = UnitManager.shared
+
     let pitch: Double      // 俯仰角 (°，抬头为正)
     let roll: Double       // 滚转角 (°，右倾为正)
     let heading: Double    // 真航向 (°)
@@ -108,9 +111,12 @@ public struct PrimaryFlightDisplayView: View {
 
                     // 3. 顶部航向指针与刻度
                     VStack {
+                        let spd = unitManager.speed(knots: speedKts)
+                        let alt = unitManager.altitude(feet: altitudeFt)
+
                         HStack {
-                            Text("SPD \(Int(speedKts))")
-                                .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                            Text("SPD \(spd.value) \(spd.unit)")
+                                .font(.system(size: 10, weight: .heavy, design: .monospaced))
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 3)
                                 .background(Color.black.opacity(0.65))
@@ -136,15 +142,15 @@ public struct PrimaryFlightDisplayView: View {
 
                             Spacer()
 
-                            Text("ALT \(Int(altitudeFt))")
-                                .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                            Text("ALT \(alt.value) \(alt.unit)")
+                                .font(.system(size: 10, weight: .heavy, design: .monospaced))
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 3)
                                 .background(Color.black.opacity(0.65))
                                 .clipShape(RoundedRectangle(cornerRadius: 4))
                                 .foregroundStyle(.white)
                         }
-                        .padding(.horizontal, 10)
+                        .padding(.horizontal, 8)
                         .padding(.top, 8)
 
                         Spacer()

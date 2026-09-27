@@ -5,6 +5,7 @@ import CCFlyCore
 /// 航图与跑道对正视图 (Aeronautical Map & Aerodrome Layout) - 毫秒级瞬开，绝对零卡顿，全景开阔无遮挡
 public struct AeronauticalMapView: View {
     @State private var planStore = FlightPlanStore.shared
+    @State private var unitManager = UnitManager.shared
     @State private var selectedAirport: Airport? = nil
     @State private var detailAirport: Airport? = nil
     @State private var searchQuery: String = ""
@@ -98,7 +99,7 @@ public struct AeronauticalMapView: View {
                                                                 .foregroundStyle(.primary)
                                                                 .lineLimit(1)
                                                         }
-                                                        Text("\(airport.municipality) · 标高 \(Int(airport.elevationFt ?? 0)) ft · \(airport.runways.count) 条真实物理跑道")
+                                                        Text("\(airport.municipality) · \(unitManager.elevation(feet: airport.elevationFt)) · \(airport.runways.count) 条真实物理跑道")
                                                             .font(.caption2)
                                                             .foregroundStyle(.secondary)
                                                     }
@@ -138,7 +139,7 @@ public struct AeronauticalMapView: View {
                                             .font(.headline)
                                             .lineLimit(1)
                                     }
-                                    Text("\(airport.municipality), 中国 · 标高 \(Int(airport.elevationFt ?? 0)) FT · 包含 \(airport.runways.count) 条真实跑道")
+                                    Text("\(airport.municipality), 中国 · \(unitManager.elevation(feet: airport.elevationFt)) · 包含 \(airport.runways.count) 条真实跑道")
                                         .font(.caption2)
                                         .foregroundStyle(.secondary)
                                 }
@@ -162,7 +163,7 @@ public struct AeronauticalMapView: View {
                                                 Text("跑道 \(rwy.leIdent)/\(rwy.heIdent)")
                                                     .font(.caption.bold().monospaced())
                                                     .foregroundStyle(.blue)
-                                                Text("\(Int(rwy.lengthFt ?? 0))×\(Int(rwy.widthFt ?? 0)) FT")
+                                                Text(unitManager.runwayDimension(lengthFt: rwy.lengthFt, widthFt: rwy.widthFt))
                                                     .font(.caption2.monospaced())
                                                     .foregroundStyle(.secondary)
                                                 if let hdg = rwy.leHeadingDegT {

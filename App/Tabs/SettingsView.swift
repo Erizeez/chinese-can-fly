@@ -5,7 +5,7 @@ import CCFlyCore
 public struct SettingsView: View {
     @State private var dataManager = FlightDataManager.shared
     @AppStorage("sensorRate") private var sensorRate: Int = 50
-    @AppStorage("unitSystem") private var unitSystem: String = "aviation"
+    @State private var unitManager = UnitManager.shared
     @AppStorage("autoBlackbox") private var autoBlackbox: Bool = true
     @AppStorage("keepAliveAudio") private var keepAliveAudio: Bool = true
 
@@ -51,11 +51,12 @@ public struct SettingsView: View {
                     }
                 }
 
-                // 3. 单位体系
+                // 3. 单位体系 (即时全局响应)
                 Section("航空计量单位制") {
-                    Picker("单位制", selection: $unitSystem) {
-                        Text("民航标准制 (FT, KTS, NM, hPa)").tag("aviation")
-                        Text("公制 (米, 公里/小时, KM)").tag("metric")
+                    Picker("单位制", selection: $unitManager.currentSystem) {
+                        ForEach(AviationUnitSystem.allCases) { sys in
+                            Text(sys.displayName).tag(sys)
+                        }
                     }
                 }
 

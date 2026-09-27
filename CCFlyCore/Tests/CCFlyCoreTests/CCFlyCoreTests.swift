@@ -109,6 +109,56 @@ final class CCFlyCoreTests: XCTestCase {
             XCTFail("离线库中未收录的航班应返回 notFoundInOffline")
         }
     }
+
+    func testUnitSystemConversionAndNotification() {
+        let unitMgr = UnitManager.shared
+
+        // 1. 验证民航标准制输出
+        unitMgr.currentSystem = .aviation
+        let altAviation = unitMgr.altitude(feet: 35000)
+        XCTAssertEqual(altAviation.value, "35000")
+        XCTAssertEqual(altAviation.unit, "FT")
+
+        let spdAviation = unitMgr.speed(knots: 480)
+        XCTAssertEqual(spdAviation.value, "480")
+        XCTAssertEqual(spdAviation.unit, "KTS")
+
+        let vsAviation = unitMgr.verticalSpeed(fpm: -120)
+        XCTAssertEqual(vsAviation.value, "-120")
+        XCTAssertEqual(vsAviation.unit, "FPM")
+
+        let distAviation = unitMgr.distance(nm: 358)
+        XCTAssertEqual(distAviation.value, "358")
+        XCTAssertEqual(distAviation.unit, "NM")
+
+        let rwyAviation = unitMgr.runwayDimension(lengthFt: 8000, widthFt: 150)
+        XCTAssertEqual(rwyAviation, "8000×150 FT")
+
+        // 2. 验证切换到国际公制 (响应式生效)
+        unitMgr.currentSystem = .metric
+        let altMetric = unitMgr.altitude(feet: 35000) // 35000 * 0.3048 = 10668m
+        XCTAssertEqual(altMetric.value, "10668")
+        XCTAssertEqual(altMetric.unit, "m")
+
+        let spdMetric = unitMgr.speed(knots: 480) // 480 * 1.852 = 888.96 -> 889 km/h
+        XCTAssertEqual(spdMetric.value, "889")
+        XCTAssertEqual(spdMetric.unit, "km/h")
+
+        let vsMetric = unitMgr.verticalSpeed(fpm: -120) // -120 * 0.00508 = -0.6096 m/s
+        XCTAssertEqual(vsMetric.value, "-0.6")
+        XCTAssertEqual(vsMetric.unit, "m/s")
+
+        let distMetric = unitMgr.distance(nm: 358) // 358 * 1.852 = 663.016 -> 663 km
+        XCTAssertEqual(distMetric.value, "663")
+        XCTAssertEqual(distMetric.unit, "km")
+
+        let rwyMetric = unitMgr.runwayDimension(lengthFt: 8000, widthFt: 150) // 8000*0.3048=2438, 150*0.3048=46
+        XCTAssertEqual(rwyMetric, "2438×46 m")
+
+        // 3. 复原为民航标准制
+        unitMgr.currentSystem = .aviation
+    }
 }
+
 
 

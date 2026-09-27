@@ -4,6 +4,7 @@ import CCFlyCore
 /// 航班数据 Tab 页面 (纯数据驱动，统一 Data Provider，按需下载离线包，杜绝硬编码假数据)
 public struct FlightDataView: View {
     @State private var planStore = FlightPlanStore.shared
+    @State private var unitManager = UnitManager.shared
     @State private var callsignInput: String = ""
     @State private var showWaypointsSheet: Bool = false
     @State private var showCustomFlightSheet: Bool = false
@@ -445,6 +446,9 @@ public struct FlightDataView: View {
             Divider()
 
             // 起降机场与大圆航距
+            let dist = unitManager.distance(nm: flight.distanceNM)
+            let flStr = unitManager.flightLevel(feet: flight.plannedCruiseAltitudeFt)
+
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(flight.departureIATA)
@@ -460,10 +464,10 @@ public struct FlightDataView: View {
                     Image(systemName: "airplane")
                         .font(.title2)
                         .foregroundStyle(.blue)
-                    Text("\(Int(flight.distanceNM)) NM")
+                    Text(dist.full)
                         .font(.caption2.bold().monospaced())
                         .foregroundStyle(.secondary)
-                    Text("FL\(Int(flight.plannedCruiseAltitudeFt / 100))")
+                    Text(flStr)
                         .font(.system(size: 10, weight: .bold, design: .monospaced))
                         .foregroundStyle(.blue)
                 }
@@ -516,6 +520,7 @@ public struct FlightDataView: View {
             }
 
             if let online = planStore.activeFlightState {
+                let spd = unitManager.speed(knots: online.velocityKts ?? 0)
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         Text("空中呼号: \(online.callsign)")
@@ -529,10 +534,11 @@ public struct FlightDataView: View {
                             .foregroundStyle(online.onGround ? .orange : .green)
                             .clipShape(Capsule())
                     }
-                    Text("真实地速: \(Int(online.velocityKts ?? 0)) KTS · 航向: \(Int(online.trueTrackDeg ?? 0))°")
+                    Text("真实地速: \(spd.full) · 航向: \(Int(online.trueTrackDeg ?? 0))°")
                         .font(.caption.monospaced())
                     if let baroAlt = online.baroAltitudeMeters {
-                        Text("ADS-B 气压高度: \(Int(baroAlt * 3.28084)) FT")
+                        let alt = unitManager.altitude(meters: baroAlt)
+                        Text("ADS-B 气压高度: \(alt.full)")
                             .font(.caption.monospaced())
                             .foregroundStyle(.blue)
                     }
