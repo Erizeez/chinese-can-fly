@@ -20,6 +20,20 @@ targets:
           - "Info.plist"
     info:
       path: App/Info.plist
+      properties:
+        CFBundleDevelopmentRegion: "zh_CN"
+        CFBundleDisplayName: "中国人能飞"
+        NSLocationWhenInUseUsageDescription: "“中国人能飞”需要获取您的实时飞行位置与地速，以提供航空态势感知。"
+        NSLocationAlwaysAndWhenInUseUsageDescription: "“中国人能飞”需要后台定位权限，以便在长航时飞行巡航及息屏状态下持续记录高精度航迹与几何高度剖面。"
+        NSMotionUsageDescription: "“中国人能飞”需要使用 iPhone 陀螺仪与加速度计，用于高频解算飞机姿态、过载 G 值、触地冲击及颠簸 EDR。"
+        UIBackgroundModes:
+          - location
+          - audio
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
     configFiles:
       Debug: Configuration/Signing.xcconfig
       Release: Configuration/Signing.xcconfig

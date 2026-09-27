@@ -3,7 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<string>zh_CN</string>
+	<key>CFBundleDisplayName</key>
+	<string>中国人能飞</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -18,5 +20,24 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>“中国人能飞”需要后台定位权限，以便在长航时飞行巡航及息屏状态下持续记录高精度航迹与几何高度剖面。</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>“中国人能飞”需要获取您的实时飞行位置与地速，以提供航空态势感知。</string>
+	<key>NSMotionUsageDescription</key>
+	<string>“中国人能飞”需要使用 iPhone 陀螺仪与加速度计，用于高频解算飞机姿态、过载 G 值、触地冲击及颠簸 EDR。</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+		<string>audio</string>
+	</array>
+	<key>UILaunchScreen</key>
+	<dict/>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
 </dict>
 </plist>

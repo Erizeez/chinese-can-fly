@@ -11,14 +11,14 @@ public struct OfflineMapView: View {
     @State private var mapPosition: MapCameraPosition = .automatic
 
     // 默认精选干线机场列表 (快速离线展示，不占用首屏地图负载)
-    private let quickAirports: [Airport] = AirportRepository.shared.getAllAirports()
+    @State private var quickAirports: [Airport] = []
 
     public init() {}
 
     public var body: some View {
         NavigationStack {
             ZStack(alignment: .bottom) {
-                // 1. 真实地图视图 (轻量极速渲染)
+                // 1. 真实地图视图 (轻量极速离线渲染，无 elevation 阻塞)
                 Map(position: $mapPosition) {
                     // 当前飞机物理位置标注 (带真航向箭头)
                     Annotation("当前飞机位置", coordinate: CLLocationCoordinate2D(latitude: dataManager.latitude, longitude: dataManager.longitude)) {
@@ -59,8 +59,13 @@ public struct OfflineMapView: View {
                             .tint(.orange)
                     }
                 }
-                .mapStyle(.standard(elevation: .realistic))
+                .mapStyle(.standard)
                 .ignoresSafeArea(edges: .top)
+                .onAppear {
+                    if quickAirports.isEmpty {
+                        quickAirports = AirportRepository.shared.getAllAirports()
+                    }
+                }
 
                 // 2. 悬浮底栏：机场搜索与跑道几何详情
                 VStack(spacing: 8) {

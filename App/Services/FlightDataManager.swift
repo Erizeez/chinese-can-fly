@@ -58,8 +58,11 @@ public final class FlightDataManager: @unchecked Sendable {
         // 默认载入干线代表航班
         self.currentFlight = OfflineFlightDatabase.shared.lookupFlight(callsign: "CA1501")
         setupSensorCallbacks()
-        // 启动真实传感器常驻前台感知 (开机即感知，绝无阻塞)
-        BackgroundFlightTracker.shared.startLiveSensors()
+        // 延迟 0.1 秒平滑激活传感器，确保 SwiftUI 首屏在 0.01 秒内瞬间呈现
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 100_000_000)
+            BackgroundFlightTracker.shared.startLiveSensors()
+        }
     }
 
     private func setupSensorCallbacks() {
