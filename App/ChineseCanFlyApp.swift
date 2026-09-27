@@ -22,7 +22,7 @@ struct ChineseCanFlyApp: App {
 
 /// 主 Tab 容器视图
 struct MainTabView: View {
-    @State private var selectedTab: Int = 0 // 默认进入航班数据检索与计划
+    @State private var selectedTab: Int = 1 // 默认进入航图
 
     var body: some View {
         TabView(selection: $selectedTab) {

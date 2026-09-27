@@ -105,12 +105,33 @@ public final class AirportRepository: @unchecked Sendable {
             let data = try Data(contentsOf: url)
             let decoded = try JSONDecoder().decode([Airport].self, from: data)
             
+            // 将真实的跑道几何与核心机场中文官方名深度融合
+            var mergedList = decoded
+            let hubIataMap = Dictionary(uniqueKeysWithValues: Self.coreHubAirports.filter { !$0.iata.isEmpty }.map { ($0.iata.uppercased(), $0) })
+            for i in 0..<mergedList.count {
+                let code = mergedList[i].iata.uppercased()
+                if let zh = hubIataMap[code] {
+                    mergedList[i] = Airport(
+                        ident: mergedList[i].ident,
+                        icao: mergedList[i].icao,
+                        iata: mergedList[i].iata,
+                        name: zh.name,
+                        municipality: zh.municipality,
+                        latitude: mergedList[i].latitude,
+                        longitude: mergedList[i].longitude,
+                        elevationFt: mergedList[i].elevationFt ?? zh.elevationFt,
+                        type: mergedList[i].type,
+                        runways: mergedList[i].runways
+                    )
+                }
+            }
+
             lock.lock()
-            self.airports = decoded
-            indexAirports(decoded)
+            self.airports = mergedList
+            indexAirports(mergedList)
             self.isLoaded = true
             lock.unlock()
-            print("✈️ [AIRPORT_REPO] 成功在后台载入 \(decoded.count) 座机场与跑道物理模型")
+            print("✈️ [AIRPORT_REPO] 成功在后台载入 \(mergedList.count) 座真实机场与真实跑道物理模型")
         } catch {
             print("后台解析机场数据库失败: \(error)")
         }

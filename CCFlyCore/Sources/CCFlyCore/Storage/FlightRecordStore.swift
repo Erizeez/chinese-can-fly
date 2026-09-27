@@ -89,9 +89,14 @@ public final class FlightRecordStore: @unchecked Sendable {
         try? fileManager.createDirectory(at: recordsDirectory, withIntermediateDirectories: true)
         loadIndex()
 
-        // 若首次启动且无记录，初始化 2 条经典标杆航班历史 (C919全球商业首航与国航干线)
-        if records.isEmpty {
-            createInitialSampleRecords()
+        // 严格遵循真实原则：清除所有历史遗留的伪造示范记录
+        let filtered = records.filter { rec in
+            !(rec.touchdownRating?.contains("Butter Landing 1.18G") == true ||
+              rec.touchdownRating?.contains("Smooth Landing 1.25G") == true)
+        }
+        if filtered.count != records.count {
+            self.records = filtered
+            saveIndex()
         }
     }
 
@@ -262,59 +267,5 @@ public final class FlightRecordStore: @unchecked Sendable {
         let targets = records.filter { $0.routeString == routeString }.map { $0.id }
         deleteRecords(ids: Set(targets))
     }
-
-    // MARK: - 预置首发真实标杆数据
-
-    private func createInitialSampleRecords() {
-        let now = Date()
-        let oneDayAgo = now.addingTimeInterval(-86400 * 2)
-        let fiveDaysAgo = now.addingTimeInterval(-86400 * 5)
-
-        // 标杆 1: C919 全球商业首发历史记录 (MU9191 SHA -> PEK)
-        let id1 = UUID()
-        let rec1 = FlightRecord(
-            id: id1,
-            callsign: "MU9191",
-            airline: "中国东方航空",
-            aircraftModel: "COMAC C919",
-            departureIATA: "SHA",
-            departureCity: "上海虹桥",
-            arrivalIATA: "PEK",
-            arrivalCity: "北京首都",
-            startTime: fiveDaysAgo,
-            endTime: fiveDaysAgo.addingTimeInterval(7200),
-            durationMinutes: 120,
-            maxAltitudeFt: 35100,
-            maxSpeedKts: 472,
-            peakNormalG: 1.18,
-            touchdownSinkRateFpm: -115,
-            touchdownRating: "丝滑着陆 (Butter Landing 1.18G)",
-            frameCount: 120
-        )
-
-        // 标杆 2: 国航主力干线 (CA1501 PEK -> SHA)
-        let id2 = UUID()
-        let rec2 = FlightRecord(
-            id: id2,
-            callsign: "CA1501",
-            airline: "中国国际航空",
-            aircraftModel: "Airbus A350-900",
-            departureIATA: "PEK",
-            departureCity: "北京首都",
-            arrivalIATA: "SHA",
-            arrivalCity: "上海虹桥",
-            startTime: oneDayAgo,
-            endTime: oneDayAgo.addingTimeInterval(6600),
-            durationMinutes: 110,
-            maxAltitudeFt: 36000,
-            maxSpeedKts: 512,
-            peakNormalG: 1.25,
-            touchdownSinkRateFpm: -140,
-            touchdownRating: "轻柔着陆 (Smooth Landing 1.25G)",
-            frameCount: 110
-        )
-
-        self.records = [rec2, rec1]
-        saveIndex()
-    }
 }
+

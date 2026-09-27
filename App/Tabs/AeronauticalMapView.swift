@@ -2,98 +2,205 @@ import SwiftUI
 import MapKit
 import CCFlyCore
 
-/// 航图与跑道对正视图 (Aeronautical Map & Aerodrome Layout) - 毫秒级瞬开，绝对零卡顿
+/// 航图与跑道对正视图 (Aeronautical Map & Aerodrome Layout) - 毫秒级瞬开，绝对零卡顿，全景开阔无遮挡
 public struct AeronauticalMapView: View {
     @State private var planStore = FlightPlanStore.shared
     @State private var selectedAirport: Airport? = nil
+    @State private var detailAirport: Airport? = nil
     @State private var searchQuery: String = ""
     @State private var searchResults: [Airport] = []
-
-    // 核心优化：直接使用静态常量干线机场，零锁竞争、零开销、零延迟
-    private let coreAirports = AirportRepository.coreHubAirports
 
     public init() {}
 
     public var body: some View {
         NavigationStack {
-            ZStack(alignment: .bottom) {
-                // 1. 工业级高性能航图渲染层 (常驻预热 MKMapView 桥接，0ms 物理级瞬开，绝无任何掉帧与阻塞)
+            ZStack(alignment: .top) {
+                // 1. 全景开阔高性能航图渲染层 (常驻预热 MKMapView 桥接，0ms 物理级瞬开，全屏展现航路)
                 AviationMapViewRepresentable(
                     aircraftCoordinate: planStore.chartPosition,
                     aircraftTrackDeg: planStore.chartTrackDeg,
                     routeCoordinates: planStore.precomputedRouteCoords,
                     selectedAirport: selectedAirport
                 )
-                .ignoresSafeArea(edges: .top)
+                .ignoresSafeArea()
 
-                // 2. 悬浮底栏：机场搜索与跑道几何详情
+                // 2. 顶部微型悬浮搜索栏与按需交互浮层 (不输入时 100% 呈现开阔航图，绝不遮挡)
                 VStack(spacing: 8) {
-                    // 快速搜索栏
-                    HStack {
+                    // 2.1 极简悬浮胶囊搜索条 (高 44，小巧美观)
+                    HStack(spacing: 10) {
                         Image(systemName: "magnifyingglass")
-                            .foregroundStyle(.secondary)
-                        TextField("离线检索机场 (如 首都, 虹桥, ZBAA, PEK)", text: $searchQuery)
+                            .foregroundStyle(.blue)
+
+                        TextField("检索 779 座真实机场 (如 首都, 虹桥, SQJ, 三明)", text: $searchQuery)
                             .textFieldStyle(.plain)
+                            .textInputAutocapitalization(.characters)
+                            .autocorrectionDisabled()
                             .onChange(of: searchQuery) { _, query in
                                 updateSearch(query: query)
                             }
+
                         if !searchQuery.isEmpty {
                             Button {
                                 searchQuery = ""
-                                updateSearch(query: "")
+                                searchResults = []
                             } label: {
                                 Image(systemName: "xmark.circle.fill")
                                     .foregroundStyle(.secondary)
                             }
                         }
                     }
-                    .padding(8)
-                    .background(Color(.secondarySystemBackground))
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .padding(.horizontal, 14)
+                    .frame(height: 44)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Capsule())
+                    .shadow(color: .black.opacity(0.12), radius: 6, y: 3)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
 
-                    // 机场横向滚动卡片 (使用 LazyHStack 仅实例化可视区域卡片，避免主线程开销)
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        LazyHStack(spacing: 10) {
-                            let displayList = searchQuery.isEmpty ? coreAirports : searchResults
-                            ForEach(displayList) { airport in
-                                Button {
-                                    self.selectedAirport = airport
-                                } label: {
-                                    VStack(alignment: .leading, spacing: 3) {
-                                        HStack {
-                                            Text(airport.iata.isEmpty ? airport.icao : airport.iata)
-                                                .font(.headline.monospaced())
-                                                .foregroundStyle(selectedAirport?.ident == airport.ident ? .white : .blue)
-                                            Spacer()
-                                            Text("\(airport.runways.count) 跑道")
-                                                .font(.caption2)
-                                                .foregroundStyle(selectedAirport?.ident == airport.ident ? .white.opacity(0.8) : .secondary)
-                                        }
-                                        Text(airport.name)
-                                            .font(.caption)
-                                            .lineLimit(1)
-                                            .foregroundStyle(selectedAirport?.ident == airport.ident ? .white : .primary)
-                                        Text("标高: \(Int(airport.elevationFt ?? 0)) ft · \(airport.municipality)")
-                                            .font(.caption2)
-                                            .foregroundStyle(selectedAirport?.ident == airport.ident ? .white.opacity(0.8) : .secondary)
-                                    }
-                                    .frame(width: 165)
-                                    .padding(9)
-                                    .background(selectedAirport?.ident == airport.ident ? Color.blue : Color(.secondarySystemBackground))
-                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    // 2.2 仅当正在输入检索时，展示轻量紧凑的搜索下拉列表
+                    if !searchQuery.isEmpty {
+                        VStack(spacing: 0) {
+                            if searchResults.isEmpty {
+                                HStack {
+                                    Image(systemName: "questionmark.circle")
+                                        .foregroundStyle(.secondary)
+                                    Text("在 779 座离线真实跑道库中未找到“\(searchQuery)”")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
                                 }
+                                .padding(14)
+                            } else {
+                                ScrollView {
+                                    LazyVStack(spacing: 0) {
+                                        ForEach(searchResults.prefix(12)) { airport in
+                                            Button {
+                                                withAnimation(.spring(response: 0.3)) {
+                                                    self.selectedAirport = airport
+                                                    self.searchQuery = ""
+                                                    self.searchResults = []
+                                                }
+                                            } label: {
+                                                HStack {
+                                                    VStack(alignment: .leading, spacing: 2) {
+                                                        HStack(spacing: 6) {
+                                                            Text(airport.iata.isEmpty ? airport.icao : airport.iata)
+                                                                .font(.subheadline.bold().monospaced())
+                                                                .foregroundStyle(.blue)
+                                                            Text(airport.name)
+                                                                .font(.subheadline)
+                                                                .foregroundStyle(.primary)
+                                                                .lineLimit(1)
+                                                        }
+                                                        Text("\(airport.municipality) · 标高 \(Int(airport.elevationFt ?? 0)) ft · \(airport.runways.count) 条真实物理跑道")
+                                                            .font(.caption2)
+                                                            .foregroundStyle(.secondary)
+                                                    }
+                                                    Spacer()
+                                                    Image(systemName: "arrow.up.right.circle.fill")
+                                                        .foregroundStyle(.blue.opacity(0.8))
+                                                }
+                                                .padding(.horizontal, 16)
+                                                .padding(.vertical, 10)
+                                            }
+                                            Divider()
+                                                .padding(.leading, 16)
+                                        }
+                                    }
+                                }
+                                .frame(maxHeight: 220)
                             }
                         }
+                        .background(.regularMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .shadow(color: .black.opacity(0.18), radius: 10, y: 5)
+                        .padding(.horizontal, 16)
+                    }
+
+                    Spacer()
+
+                    // 2.3 仅当用户主动选中某个真实机场时，底部滑出紧凑物理跑道概览卡片
+                    if let airport = selectedAirport {
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    HStack {
+                                        Text(airport.iata.isEmpty ? airport.icao : airport.iata)
+                                            .font(.title3.bold().monospaced())
+                                            .foregroundStyle(.blue)
+                                        Text(airport.name)
+                                            .font(.headline)
+                                            .lineLimit(1)
+                                    }
+                                    Text("\(airport.municipality), 中国 · 标高 \(Int(airport.elevationFt ?? 0)) FT · 包含 \(airport.runways.count) 条真实跑道")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Button {
+                                    withAnimation(.spring(response: 0.25)) {
+                                        self.selectedAirport = nil
+                                    }
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.title3)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+
+                            if !airport.runways.isEmpty {
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 8) {
+                                        ForEach(airport.runways) { rwy in
+                                            HStack(spacing: 6) {
+                                                Text("跑道 \(rwy.leIdent)/\(rwy.heIdent)")
+                                                    .font(.caption.bold().monospaced())
+                                                    .foregroundStyle(.blue)
+                                                Text("\(Int(rwy.lengthFt ?? 0))×\(Int(rwy.widthFt ?? 0)) FT")
+                                                    .font(.caption2.monospaced())
+                                                    .foregroundStyle(.secondary)
+                                                if let hdg = rwy.leHeadingDegT {
+                                                    Text("\(Int(hdg))°")
+                                                        .font(.caption2.monospaced())
+                                                        .foregroundStyle(.orange)
+                                                }
+                                            }
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 5)
+                                            .background(Color(.secondarySystemBackground))
+                                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                                        }
+                                    }
+                                }
+                            }
+
+                            Button {
+                                self.detailAirport = airport
+                            } label: {
+                                HStack {
+                                    Image(systemName: "airplane.departure")
+                                    Text("查看跑道详细几何与对正数据")
+                                }
+                                .font(.caption.bold())
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .background(Color.blue)
+                                .foregroundStyle(.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+                        }
+                        .padding(14)
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                        .shadow(color: .black.opacity(0.15), radius: 10, y: -4)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 10)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
-                .padding()
-                .background(.ultraThinMaterial)
-                .clipShape(UnevenRoundedRectangle(topLeadingRadius: 20, topTrailingRadius: 20))
-                .shadow(color: .black.opacity(0.12), radius: 8, y: -4)
             }
             .navigationTitle("航图与跑道")
             .navigationBarTitleDisplayMode(.inline)
-            .sheet(item: $selectedAirport) { airport in
+            .sheet(item: $detailAirport) { airport in
                 AirportRunwayDetailSheet(airport: airport)
             }
             .onAppear {
@@ -303,19 +410,26 @@ public struct AviationMapViewRepresentable: UIViewRepresentable {
                 }
             }
 
-            // 3. 更新选中机场标记与视锥移动
-            if let apt = selectedAirport, apt.ident != lastSelectedIdent {
-                lastSelectedIdent = apt.ident
-                airportAnnotation.coordinate = CLLocationCoordinate2D(latitude: apt.latitude, longitude: apt.longitude)
-                airportAnnotation.subtitle = apt.name
-                if !map.annotations.contains(where: { ($0 as? MKPointAnnotation)?.title == "AIRPORT" }) {
-                    map.addAnnotation(airportAnnotation)
+            // 3. 更新选中机场标记与视锥移动 (未选中时自动移除标记，保持航图纯净)
+            if let apt = selectedAirport {
+                if apt.ident != lastSelectedIdent {
+                    lastSelectedIdent = apt.ident
+                    airportAnnotation.coordinate = CLLocationCoordinate2D(latitude: apt.latitude, longitude: apt.longitude)
+                    airportAnnotation.subtitle = apt.name
+                    if !map.annotations.contains(where: { ($0 as? MKPointAnnotation)?.title == "AIRPORT" }) {
+                        map.addAnnotation(airportAnnotation)
+                    }
+                    let region = MKCoordinateRegion(
+                        center: airportAnnotation.coordinate,
+                        span: MKCoordinateSpan(latitudeDelta: 0.15, longitudeDelta: 0.15)
+                    )
+                    map.setRegion(region, animated: true)
                 }
-                let region = MKCoordinateRegion(
-                    center: airportAnnotation.coordinate,
-                    span: MKCoordinateSpan(latitudeDelta: 0.15, longitudeDelta: 0.15)
-                )
-                map.setRegion(region, animated: true)
+            } else {
+                lastSelectedIdent = ""
+                if map.annotations.contains(where: { ($0 as? MKPointAnnotation)?.title == "AIRPORT" }) {
+                    map.removeAnnotation(airportAnnotation)
+                }
             }
         }
 
